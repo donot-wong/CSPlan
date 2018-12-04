@@ -11,7 +11,7 @@
 
 ### sensinfo
 chrome插件，用于自动化检测因配置、运维不当导致的信息泄露，如.gir/.svn等  
-项目地址： [sensinfo](https://github.com/donot-wong/sensinfo)  
+项目地址： [sensinfor](https://github.com/donot-wong/sensinfor)  
 最后时间轴：   
 	项目启动时间： 2018/05/29  
 	最后提交时间： 2018/10/24  
