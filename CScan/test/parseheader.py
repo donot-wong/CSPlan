@@ -92,5 +92,6 @@ def parse_options_header(value, multiple=False):
     return tuple(result) if result else ('', {})
 
 if __name__ == '__main__':
-    value = "multipart/form-data; boundary=----WebKitFormBoundary2dLrCE2AkRH48h2z; filename=dasdsad;"
+    # value = "multipart/form-data; boundary=----WebKitFormBoundary2dLrCE2AkRH48h2z; filename=dasdsad;"
+    value = "application/x-www-form-urlencoded; charset=UTF-8"
     print(parse_options_header(value))
