@@ -31,3 +31,12 @@ RabitMQ
 2. ContentType不能作为唯一解析标准，对于chrometype为raw类型的内容，先根据contentType进行处理，处理不成功的使用mysql中的jsonlike/xmllike等当时进行相似处理，最后处理不成功的纪录日志
 3. 对于二进制数据，暂时不做处理
 
+ContentType统计数据如下：
+在共36992条数据中：
+|ContentType 	|				  数量    |  占比 |
+| ----------    |  ---------------------  | ---- |
+|application/x-www-form-urlencoded | 31175 |  84.27% |	
+|application/json   				|  4074 | 11.01% |
+|text/plain 						|  1319 |  3.56% |
+|multipart/form-data                | 27 |    0.07%  |
+|Other							  |   97 |   0.26% |
