@@ -34,9 +34,9 @@ RabitMQ
 ContentType统计数据如下：
 在共36992条数据中：
 |ContentType 	|				  数量    |  占比 |
-| ----------    |  ---------------------  | ---- |
-|application/x-www-form-urlencoded | 31175 |  84.27% |	
-|application/json   				|  4074 | 11.01% |
-|text/plain 						|  1319 |  3.56% |
-|multipart/form-data                | 27 |    0.07%  |
-|Other							  |   97 |   0.26% |
+| ----------    |  ---------------------  | ---- 
+|application/x-www-form-urlencoded | 31175 |  84.27% 
+|application/json   				|  4074 | 11.01% 
+|text/plain 						|  1319 |  3.56% 
+|multipart/form-data                | 27 |    0.07%  
+|Other							  |   97 |   0.26% 
