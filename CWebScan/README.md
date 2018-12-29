@@ -32,12 +32,12 @@ RabitMQ
 3. 对于二进制数据，暂时不做处理
 
 ContentType统计数据如下：
-在共36992条数据中：
+在共74286条数据中：
 
 |ContentType 	|				  数量    |  占比 |
 | ----------    |  ---------------------  | ---- 
-|application/x-www-form-urlencoded | 31175 |  84.27% 
-|application/json   				|  4074 | 11.01% 
-|text/plain 						|  1319 |  3.56% 
-|multipart/form-data                | 27 |    0.07%  
-|Other							  |   97 |   0.26% 
+|application/x-www-form-urlencoded | 66956 |  90.01% 
+|application/json   				|  5368 | 7.22% 
+|text/plain 						|  1449 |  1.95% 
+|multipart/form-data                | 28 |    0.03%  
+|Other							  |   1934 |   2.60% 
