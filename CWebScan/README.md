@@ -28,7 +28,7 @@ RabitMQ
 
 ### 参数解析方案
 1. chrometype的优先级是最高的，一般chrome识别出的formData不管其真实请求的ContentType是何种类型，其真实内容是都是x-www-form-urlencoded，因此在进行参数解析时，优先解析chrometype为formData的，然后使用json解析body，所有成功解析的均识别为x-www-form-urlencoded类型处理。
-2. ContentType不能作为唯一解析标准，对于chrometype为raw类型的内容，先根据contentType进行处理，处理不成功的使用mysql中的jsonlike/xmllike等当时进行相似处理，最后处理不成功的纪录日志
+2. ContentType不能作为唯一解析标准，对于chrometype为raw类型的内容，先根据contentType进行处理，处理不成功的使用sqlmap中的jsonlike/xmllike等进行相似处理，最后处理不成功的纪录日志
 3. 对于二进制数据，暂时不做处理
 
 ContentType统计数据如下：
@@ -41,3 +41,10 @@ ContentType统计数据如下：
 |text/plain 						|  1449 |  1.95% 
 |multipart/form-data                | 28 |    0.03%  
 |Other							  |   1934 |   2.60% 
+
+
+### 消息队列
+不采用其他任务分发框架，通过RabbitMQ消息队列实现数据的分发，采用生产者-消费者模型，实现通过多个不同队列模型实现数据的扭转
+
+CMonitor->CWebServer->数据处理1号队列->数据清洗（Consumer1）->sql注入扫描1号队列-> sql注入扫描
+通过是否进入不同的扫描队列控制扫描类型
