@@ -46,5 +46,10 @@ ContentType统计数据如下：
 ### 消息队列
 不采用其他任务分发框架，通过RabbitMQ消息队列实现数据的分发，采用生产者-消费者模型，实现通过多个不同队列模型实现数据的扭转
 
-CMonitor->CWebServer->数据处理1号队列->数据清洗（Consumer1）->扫描任务分发队列-> 不同扫描类型任务队列 -> 插件化扫描器 -> 扫描结果队列 -> 扫描结果处理队列
+CMonitor->CWebServer->数据处理队列->数据清洗->扫描任务分发队列->不同扫描类型任务队列->插件化扫描器->扫描结果队列->扫描结果处理队列
 通过是否进入不同的扫描队列控制扫描类型
+
+
+### DNSLOG平台
+[https://github.com/BugScanTeam/DNSLog.git](https://github.com/BugScanTeam/DNSLog.git)
+
