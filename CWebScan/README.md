@@ -53,3 +53,9 @@ CMonitor->CWebServer->数据处理队列->数据清洗->扫描任务分发队列
 ### DNSLOG平台
 [https://github.com/BugScanTeam/DNSLog.git](https://github.com/BugScanTeam/DNSLog.git)
 
+### 参考
+sqlmap
+awvs
+xsstrike
+腾讯扫描器实践
+...
