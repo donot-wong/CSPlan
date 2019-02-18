@@ -7,7 +7,7 @@
 # 多线程启动消费者 - 原始数据解析
 import pika
 import json
-from ParseBase import *
+from . import ParseBaseClass
 
 def mainConsumer():
     connection = pika.BlockingConnection(pika.ConnectionParameters('localhost'))
@@ -31,7 +31,7 @@ def mainConsumer():
 
         if chromeType == 'formData' or chromeType == 'raw':
             data = postDataJson['requestBody']
-            parseObj = ParseBase(chromeType, contentType, data)
+            parseObj = ParseBaseClass.ParseBase(chromeType, contentType, data)
             res = parseObj.parseData()
             if res:
                 print(res)

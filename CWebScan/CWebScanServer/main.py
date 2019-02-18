@@ -20,6 +20,7 @@ def ReceiveBody():
     requestId = request.args.get('requestId')
 
     postDataJson = json.loads(request.get_data())
+    # print(postDataJson)
 
     from lib.rabbitqueue.initqueue import SourceDataQueue
 

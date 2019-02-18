@@ -21,7 +21,10 @@
 # 消费者
 import multiprocessing
 import sys
-sys.path.append('../../')
+import os
+
+sys.path.append(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
+
 from sourceparse.main import mainConsumer
 p = multiprocessing.Process(target=mainConsumer)
 p.daemon = False
