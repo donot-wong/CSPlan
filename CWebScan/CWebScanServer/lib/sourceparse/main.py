@@ -6,8 +6,14 @@
 
 # 多线程启动消费者 - 原始数据解析
 import pika
+import pickle
 import json
 from . import ParseBaseClass
+import sys
+import os
+
+sys.path.append(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
+from rabbitqueue.initqueue import ToScanQueue
 
 def mainConsumer():
     connection = pika.BlockingConnection(pika.ConnectionParameters('localhost'))
@@ -34,7 +40,8 @@ def mainConsumer():
             parseObj = ParseBaseClass.ParseBase(chromeType, contentType, data)
             res = parseObj.parseData()
             if res:
-                print(res)
+                # print(res)
+                ToScanQueue.basic_publish(exchange='', routing_key='toscanqueue', body=pickle.dumps(res))
             else:
                 pass # log
         else:
@@ -45,7 +52,6 @@ def mainConsumer():
 
 
 if __name__ == '__main__':
-
     parseTest = ParseBase('formData', 'application/x-www-form-urlencoded; charset=UTF-8', "{\"metadata[]\":[\"\"],\"path\":[\"%2FROOT%2FHOME\"]}")
     parseTest.parseData()
     # parseTest.parse()

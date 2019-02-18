@@ -18,7 +18,7 @@
 # loghandler.setFormatter(logging_format)
 # app.logger.addHandler(loghandler)
 
-# 消费者
+# 消费者子进程
 import multiprocessing
 import sys
 import os
@@ -29,3 +29,5 @@ from sourceparse.main import mainConsumer
 p = multiprocessing.Process(target=mainConsumer)
 p.daemon = False
 p.start()
+
+# 扫描器子进程

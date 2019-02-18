@@ -8,6 +8,7 @@
 import json
 import re
 from urllib.parse import unquote_to_bytes as _unquote
+from .RequestDataClass import RequestData
 
 _option_header_start_mime_type = re.compile(r',\s*([^;,\s]+)([;,]\s*.+)?')
 
@@ -53,7 +54,16 @@ class ParseBase(object):
 			reqbody = []
 			for key in res:
 				reqbody.append(key + "=" + res[key][0])
-			return '&'.join(reqbody)
+			ret = RequestData()
+			ret.host = '127.0.0.1'
+			ret.method = 'GET'
+			ret.path = '/admin/get'
+			ret.contentType = 'multipart/form-data'
+			ret.contentLength = 1452
+			ret.body = None
+			# return '&'.join(reqbody)
+			return ret
+
 		elif self.chormeType == 'raw':
 			# app.logger.debug('[*] raw chromeType. obj: %s' % self)
 			return 'raw'

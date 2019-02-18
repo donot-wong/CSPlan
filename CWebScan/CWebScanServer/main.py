@@ -11,39 +11,17 @@ from flask import json
 
 app = Flask(__name__)
 
+# 初始化
 from lib.init import init
 
 
 @app.route('/Receive', methods = ['POST'])
 def ReceiveBody():
-    InitId = request.args.get('InitId')
-    requestId = request.args.get('requestId')
-
-    postDataJson = json.loads(request.get_data())
-    # print(postDataJson)
-
+    # InitId = request.args.get('InitId')
+    # requestId = request.args.get('requestId')
     from lib.rabbitqueue.initqueue import SourceDataQueue
 
     SourceDataQueue.basic_publish(exchange='', routing_key='dataprehandlequeue', body=request.get_data())
-    # InitId = postDataJson['InitId']
-    # requestId = postDataJson['requestId']
-    # chromeType = postDataJson['bodyType']
-    # try:
-    #     reqHeaders = postDataJson['reqHeaders']
-    # except Exception as e:
-    #     reqHeaders = {}
-
-    # try:
-    # 	contentType = reqHeaders['Content-Type']
-    # except Exception as e:
-    #     contentType = ''
-
-    # if chromeType == 'formData' or chromeType == 'raw':
-    #     data = postDataJson['requestBody']
-    #     parseObj = ParseBase(chromeType, contentType, data)
-    #     parseObj.parseData()
-    # else:
-    #     return 'Body is Empty'
 
     return 'Ok'
 
