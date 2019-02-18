@@ -1,0 +1,23 @@
+{
+	"name": "CWebScanClient",
+	"description": "CWebScanClient by donot!",
+	"version": "1.0",
+
+	"permissions": [
+		"gcm",
+		"tabs",
+		"contextMenus",
+		"webRequest",
+		"http://*/*",
+		"https://*/*",
+		"\u003Call_urls>"
+	],
+
+	"background": {
+    	"scripts": [ 
+      		"js/background.js",
+      		"js/jquery-3.3.1.min.js"
+      	]
+   	},
+	"manifest_version": 2
+}
