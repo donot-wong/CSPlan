@@ -21,7 +21,7 @@ Mysql
 
 ### 时间轴
 - [x] 2019/12/30 完成技术方案定型  
-- [ ] 2019/01/30 完成Chrome插件及数据处理模块设计开发  
+- [x] 2019/01/30 完成Chrome插件及数据处理模块设计开发  
 - [ ] 2019/02/30 完成任务调度模块设计开发  
 - [ ] 2019/03/30 完成扫描平台及策略模块开发  
 
@@ -51,7 +51,9 @@ CMonitor->CWebServer->数据处理队列->数据清洗->扫描任务分发队列
 
 
 ### DNSLOG平台
-[https://github.com/BugScanTeam/DNSLog.git](https://github.com/BugScanTeam/DNSLog.git)
+[https://github.com/BugScanTeam/DNSLog](https://github.com/BugScanTeam/DNSLog)
+[https://github.com/donot-wong/dnslog](https://github.com/donot-wong/dnslog)
+
 
 ### 参考
 sqlmap
