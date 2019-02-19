@@ -12,8 +12,9 @@ from . import ParseBaseClass
 import sys
 import os
 
-sys.path.append(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
-from rabbitqueue.initqueue import ToScanQueue
+sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__)))))
+from lib.rabbitqueue.initqueue import ToScanQueue
+from utils.DataStructure import RequestData
 
 def mainConsumer():
     connection = pika.BlockingConnection(pika.ConnectionParameters('localhost'))
@@ -40,7 +41,7 @@ def mainConsumer():
             parseObj = ParseBaseClass.ParseBase(chromeType, contentType, data)
             res = parseObj.parseData()
             if res:
-                # print(res)
+                print(res)
                 ToScanQueue.basic_publish(exchange='', routing_key='toscanqueue', body=pickle.dumps(res))
             else:
                 pass # log

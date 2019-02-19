@@ -8,7 +8,11 @@
 import json
 import re
 from urllib.parse import unquote_to_bytes as _unquote
-from .RequestDataClass import RequestData
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__)))))
+from utils.DataStructure import RequestData
+
 
 _option_header_start_mime_type = re.compile(r',\s*([^;,\s]+)([;,]\s*.+)?')
 
