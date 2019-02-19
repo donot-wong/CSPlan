@@ -1,9 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# @Date    : 2019-02-18 10:05:47
-# @Author  : Your Name (you@example.org)
-# @Link    : http://example.org
-# @Version : $Id$
+# @Date    : 2019-02-19 15:30:05
+# @Author  : donot (donot@donot.me)
+# @Link    : https://blog.donot.me
 
 from flask import Flask
 from flask import request

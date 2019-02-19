@@ -4,7 +4,12 @@
 # @Author  : donot (donot@donot.me)
 # @Link    : https://blog.donot.me
 
-
+import multiprocessing
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
+from sourceparse.main import parseMain
+from scandistribution.distribute import distributeMain
 ## 服务端环境初始化
 
 
@@ -19,15 +24,18 @@
 # app.logger.addHandler(loghandler)
 
 # 消费者子进程
-import multiprocessing
-import sys
-import os
-
-sys.path.append(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
-
-from sourceparse.main import mainConsumer
-p = multiprocessing.Process(target=mainConsumer)
+p = multiprocessing.Process(target=parseMain)
 p.daemon = False
 p.start()
 
-# 扫描器子进程
+
+# 任务分发子进程
+p = multiprocessing.Process(target=distributeMain)
+p.daemon = False
+p.start()
+
+
+# sqlinject扫描子进程
+# p = multiprocessing.Process(target=)
+# p.daemon = False
+# p.start()

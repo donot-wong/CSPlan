@@ -16,7 +16,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath
 from lib.rabbitqueue.initqueue import ToScanQueue
 from utils.DataStructure import RequestData
 
-def mainConsumer():
+def parseMain():
     connection = pika.BlockingConnection(pika.ConnectionParameters('localhost'))
     channel = connection.channel()
 
@@ -37,12 +37,17 @@ def mainConsumer():
             contentType = ''
 
         if chromeType == 'formData' or chromeType == 'raw':
-            data = postDataJson['requestBody']
-            parseObj = ParseBaseClass.ParseBase(chromeType, contentType, data)
+            parseObj = ParseBaseClass.ParseBase(postDataJson['url'], chromeType, contentType, postDataJson['requestBody'])
             res = parseObj.parseData()
             if res:
-                print(res)
-                ToScanQueue.basic_publish(exchange='', routing_key='toscanqueue', body=pickle.dumps(res))
+                # res.method = postDataJson['method']
+                # res.url = postDataJson['url']
+                # res.resip = postDataJson['resIp']
+                # res.statuscode = postDataJson['statusCode']
+                # res.reqHeaders = reqHeaders
+                # res.resHeaders = postDataJson['resHeaders']
+                print(postDataJson['reqHeaders'])
+                # ToScanQueue.basic_publish(exchange='', routing_key='toscanqueue', body=pickle.dumps(res))
             else:
                 pass # log
         else:

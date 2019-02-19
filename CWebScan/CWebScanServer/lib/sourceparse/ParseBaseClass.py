@@ -1,9 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# @Date    : 2018-12-20 15:16:17
-# @Author  : Your Name (you@example.org)
-# @Link    : http://example.org
-# @Version : $Id$
+# @Date    : 2019-02-18 14:27:14
+# @Author  : donot (donot@donot.me)
+# @Link    : https://blog.donot.me
 
 import json
 import re
@@ -47,33 +46,28 @@ class ParseBase(object):
 	chormeType = None
 	contentType = None
 	data = None
-	def __init__(self, chormeType, contentType, data):
+	url = None
+	ret = None
+	def __init__(self, url, chormeType, contentType, data):
 		self.chormeType = chormeType
 		self.contentType = contentType
 		self.data = data
+		self.url = url
+		self.ret = RequestData()
 
 	def parseData(self):
+		self.ret.chromeType = self.chormeType
 		if self.chormeType == 'formData':
 			res = self._parseFormData()
 			reqbody = []
 			for key in res:
 				reqbody.append(key + "=" + res[key][0])
-			ret = RequestData()
-			ret.host = '127.0.0.1'
-			ret.method = 'GET'
-			ret.path = '/admin/get'
-			ret.contentType = 'multipart/form-data'
-			ret.contentLength = 1452
-			ret.body = None
-			# return '&'.join(reqbody)
-			return ret
+			self.ret.reqbodyList = reqbody
 
 		elif self.chormeType == 'raw':
-			# app.logger.debug('[*] raw chromeType. obj: %s' % self)
-			return 'raw'
+			self.ret.reqbody = None
 		else:
-			# app.logger.debug('[*] empty chromeType. obj: %s' % self)
-			return 'empty'
+			self.ret.reqbody = None
 
 	def parseCT(self):
 		'''
@@ -81,17 +75,21 @@ class ParseBase(object):
 		'''
 		res = self._parse_options_header(self.contentType)
 		if len(res) == 1:
-			self.contentType = res[0]
+			self.ret.contentType = res[0]
 		elif len(res) == 2:
 			if 'charset' in res[1]:
-				self.charset = res[1]['charset']
+				self.ret.charset = res[1]['charset']
 			elif 'boundary' in res[1]:
-				self.boundary = res[1]['boundary']
+				self.ret.boundary = res[1]['boundary']
 			else:
 				pass
 		else:
 			pass
 
+	def parse(self):
+		self.parseData()
+		self.parseCT()
+		return self.ret
 
 	def _unquote_header_value(self, value, is_filename=False):
 	    if value and value[0] == value[-1] == '"':
@@ -138,6 +136,9 @@ class ParseBase(object):
 
 	def _parseFormData(self):
 		return json.loads(self.data)
+
+	def _parseRawData(self):
+		pass
 
 
 	def __repr__(self):
