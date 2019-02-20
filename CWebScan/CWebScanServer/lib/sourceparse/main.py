@@ -48,6 +48,7 @@ def parseMain():
                 res.reqHeaders = reqHeaders
                 res.resHeaders = postDataJson['resHeaders']
                 # print(res.reqHeaders)
+                print(res.contentType)
                 ScanLogger.debug('Ok')
                 # ToScanQueue.basic_publish(exchange='', routing_key='toscanqueue', body=pickle.dumps(res))
             else:

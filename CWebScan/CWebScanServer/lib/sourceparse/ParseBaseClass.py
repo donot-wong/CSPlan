@@ -7,10 +7,13 @@
 import json
 import re
 from urllib.parse import unquote_to_bytes as _unquote
+from urllib.parse import parse_qs
+from urllib.parse import urlparse
 import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__)))))
 from utils.DataStructure import RequestData
+from utils.globalParam import ScanLogger
 
 
 _option_header_start_mime_type = re.compile(r',\s*([^;,\s]+)([;,]\s*.+)?')
@@ -70,6 +73,12 @@ class ParseBase(object):
 		else:
 			self.ret.reqbody = None
 
+	def parseGetParam(self):
+		o = urlparse(self.url)
+		getParemDicts = parse_qs(o.query, keep_blank_values=True)
+		self.ret.getParemDicts = getParemDicts
+
+
 	def parseCT(self):
 		'''
 		解析ContentType
@@ -78,6 +87,7 @@ class ParseBase(object):
 		if len(res) == 1:
 			self.ret.contentType = res[0]
 		elif len(res) == 2:
+			self.ret.contentType = res[0]
 			if 'charset' in res[1]:
 				self.ret.charset = res[1]['charset']
 			elif 'boundary' in res[1]:
@@ -85,11 +95,12 @@ class ParseBase(object):
 			else:
 				pass
 		else:
-			pass
+			ScanLogger.info('Parse ContentType Failed, ContentType: ' + self.contentType)
 
 	def parse(self):
 		self.parseData()
 		self.parseCT()
+		self.parseGetParam()
 		return self.ret
 
 	def _unquote_header_value(self, value, is_filename=False):
@@ -147,6 +158,7 @@ class ParseBase(object):
 
 
 if __name__ == '__main__':
-	parseTest = Parse('formData', 'application/x-www-form-urlencoded; charset=UTF-8', "{\"metadata[]\":[\"\"],\"path\":[\"%2FROOT%2FHOME\"]}")
-	parseTest.parseData()
+	parseTest = ParseBase('http://baidu.com?id=1&name=2', 'formData', 'application/x-www-form-urlencoded; charset=UTF-8', "{\"metadata[]\":[\"\"],\"path\":[\"%2FROOT%2FHOME\"]}")
+	res = parseTest.parse()
+	print(type(res.getParemDicts['id']))
 	# parseTest.parse()
