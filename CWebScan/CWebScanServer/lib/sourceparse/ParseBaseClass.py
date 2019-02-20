@@ -65,6 +65,7 @@ class ParseBase(object):
 			self.ret.reqbodyList = reqbody
 
 		elif self.chormeType == 'raw':
+			res = self._parseRawData()
 			self.ret.reqbody = None
 		else:
 			self.ret.reqbody = None
@@ -138,7 +139,7 @@ class ParseBase(object):
 		return json.loads(self.data)
 
 	def _parseRawData(self):
-		pass
+		return None
 
 
 	def __repr__(self):

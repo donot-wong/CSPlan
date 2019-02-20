@@ -15,6 +15,7 @@ import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__)))))
 from lib.rabbitqueue.initqueue import ToScanQueue
 from utils.DataStructure import RequestData
+from utils.globalParam import ScanLogger
 
 def parseMain():
     connection = pika.BlockingConnection(pika.ConnectionParameters('localhost'))
@@ -38,20 +39,23 @@ def parseMain():
 
         if chromeType == 'formData' or chromeType == 'raw':
             parseObj = ParseBaseClass.ParseBase(postDataJson['url'], chromeType, contentType, postDataJson['requestBody'])
-            res = parseObj.parseData()
+            res = parseObj.parse()
             if res:
-                # res.method = postDataJson['method']
-                # res.url = postDataJson['url']
-                # res.resip = postDataJson['resIp']
-                # res.statuscode = postDataJson['statusCode']
-                # res.reqHeaders = reqHeaders
-                # res.resHeaders = postDataJson['resHeaders']
-                print(postDataJson['reqHeaders'])
+                res.method = postDataJson['method']
+                res.url = postDataJson['url']
+                res.resip = postDataJson['resIp']
+                res.statuscode = postDataJson['statusCode']
+                res.reqHeaders = reqHeaders
+                res.resHeaders = postDataJson['resHeaders']
+                # print(res.reqHeaders)
+                ScanLogger.debug('Ok')
                 # ToScanQueue.basic_publish(exchange='', routing_key='toscanqueue', body=pickle.dumps(res))
             else:
-                pass # log
+                # pass # log
+                ScanLogger.error("Not Generate RequestData!")
         else:
-            pass # log
+            # pass # log
+            ScanLogger.error("chromeType Error: " + chromeType)
 
     channel.basic_consume(callback, queue='dataprehandlequeue', no_ack=True)
     channel.start_consuming()

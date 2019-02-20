@@ -7,21 +7,23 @@
 import multiprocessing
 import sys
 import os
-sys.path.append(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
-from sourceparse.main import parseMain
-from scandistribution.distribute import distributeMain
+sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__)))))
+from lib.sourceparse.main import parseMain
+from lib.scandistribution.distribute import distributeMain
+from utils.globalParam import ScanLogger
 ## 服务端环境初始化
 
 
 # 日志
-# import logging
+import logging
 
 
-# loghandler = logging.FileHandler('flask.log', encoding='utf-8')
-# loghandler.setLevel(logging.DEBUG)
-# logging_format = logging.Formatter("%(asctime)s - %(filename)s[line:%(lineno)d] - %(levelname)s: %(message)s")
-# loghandler.setFormatter(logging_format)
-# app.logger.addHandler(loghandler)
+loghandler = logging.FileHandler('scan.log', encoding='utf-8')
+loghandler.setLevel(logging.DEBUG)
+logging_format = logging.Formatter("%(asctime)s - %(filename)s[line:%(lineno)d] - %(levelname)s: %(message)s")
+loghandler.setFormatter(logging_format)
+ScanLogger.addHandler(loghandler)
+
 
 # 消费者子进程
 p = multiprocessing.Process(target=parseMain)
