@@ -25,8 +25,8 @@ class RequestData(object):
 	def __getattr__(self, key):
 		return object.__getattribute__(self, key)
 
-	def __repr__(self):
-		return "url: " + self.url + " method: " + self.method + ' statuscode: ' + self.statuscode
+	# def __repr__(self):
+	# 	return " method: " + self.method + ' statuscode: ' + self.statuscode
 		
 		
 if __name__ == '__main__':

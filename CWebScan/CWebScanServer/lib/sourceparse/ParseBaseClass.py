@@ -59,24 +59,35 @@ class ParseBase(object):
 		self.ret = RequestData()
 
 	def parseData(self):
+		'''
+		解析post参数
+		'''
 		self.ret.chromeType = self.chormeType
 		if self.chormeType == 'formData':
 			res = self._parseFormData()
-			reqbody = []
+			reqbody = {}
 			for key in res:
-				reqbody.append(key + "=" + res[key][0])
-			self.ret.reqbodyList = reqbody
+				reqbody[key] = res[key]
+				# reqbody.append(key + "=" + res[key][0])
+			self.ret.postData = reqbody
 
 		elif self.chormeType == 'raw':
 			res = self._parseRawData()
-			self.ret.reqbody = None
+			self.ret.postData = None
 		else:
-			self.ret.reqbody = None
+			self.ret.postData = None
 
-	def parseGetParam(self):
+	def parseUrl(self):
+		'''
+		解析get参数
+		'''
 		o = urlparse(self.url)
+		self.ret.scheme = o.scheme
+		self.ret.netloc = o.netloc
+		self.ret.path = o.path
+		self.query = o.query
 		getParemDicts = parse_qs(o.query, keep_blank_values=True)
-		self.ret.getParemDicts = getParemDicts
+		self.ret.getData = getParemDicts
 
 
 	def parseCT(self):
@@ -100,7 +111,7 @@ class ParseBase(object):
 	def parse(self):
 		self.parseData()
 		self.parseCT()
-		self.parseGetParam()
+		self.parseUrl()
 		return self.ret
 
 	def _unquote_header_value(self, value, is_filename=False):
@@ -158,7 +169,7 @@ class ParseBase(object):
 
 
 if __name__ == '__main__':
-	parseTest = ParseBase('http://baidu.com?id=1&name=2', 'formData', 'application/x-www-form-urlencoded; charset=UTF-8', "{\"metadata[]\":[\"\"],\"path\":[\"%2FROOT%2FHOME\"]}")
+	parseTest = ParseBase('http://baidu.com/search/1?id=1&name=2', 'formData', 'application/x-www-form-urlencoded; charset=UTF-8', "{\"metadata[]\":[\"\"],\"path\":[\"%2FROOT%2FHOME\"]}")
 	res = parseTest.parse()
-	print(type(res.getParemDicts['id']))
+	print(res.__dict__)
 	# parseTest.parse()
