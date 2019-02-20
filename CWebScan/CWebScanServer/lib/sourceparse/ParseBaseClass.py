@@ -109,7 +109,8 @@ class ParseBase(object):
 			ScanLogger.info('Parse ContentType Failed, ContentType: ' + self.contentType)
 
 	def parse(self):
-		self.parseData()
+		if self.chormeType != 'empty':
+			self.parseData()
 		self.parseCT()
 		self.parseUrl()
 		return self.ret
