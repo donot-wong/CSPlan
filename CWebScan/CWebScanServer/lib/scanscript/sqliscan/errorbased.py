@@ -94,3 +94,4 @@ regexArray = [
 	r"/(The string constant beginning with .*? does not have an ending string delimiter\.)/",
 	r"/(Unknown column '[^']+' in '\w+ clause')/",
 ]
+

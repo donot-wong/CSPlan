@@ -10,9 +10,16 @@ import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__)))))
 from lib.sourceparse.main import parseMain
 from lib.scandistribution.distribute import distributeMain
-from utils.globalParam import ScanLogger
+from utils.globalParam import ScanLogger, CWebScanSetting
 ## 服务端环境初始化
 
+
+## 数据库
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+engine = create_engine('mysql+pymysql://root:123456@127.0.0.1:3306/test')
+DB_Session = sessionmaker(bind=engine)
+CWebScanSetting.MysqlSession = DB_Session()
 
 # 日志
 import logging
