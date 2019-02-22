@@ -11,12 +11,13 @@ import json
 from . import ParseBaseClass
 import sys
 import os
+import datetime
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__)))))
 from lib.rabbitqueue.initqueue import ToScanQueue
 from utils.DataStructure import RequestData
 from utils.globalParam import ScanLogger, CWebScanSetting
-from lib.models.datamodel import User
+from lib.models.datamodel import User, data_raw, data_clean
 
 def parseMain():
     connection = pika.BlockingConnection(pika.ConnectionParameters('localhost'))
@@ -40,7 +41,8 @@ def parseMain():
 
         # 原始数据存储
         # ...
-
+        save2data_raw = data_raw(saveid = postDataJson['InitId']+postDataJson['requestId'], url = postDataJson['url'], method = postDataJson['method'], 
+            body=postDataJson['requestBody'], reqHeaders = postDataJson['reqHeaders'], resHeaders = postDataJson['resHeaders'], time = datetime.datetime)
         # print(CWebScanSetting.MysqlSession.execute('show databases').fetchall())
 
         if chromeType == 'formData' or chromeType == 'raw':

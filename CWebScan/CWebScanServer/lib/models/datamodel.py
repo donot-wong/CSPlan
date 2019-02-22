@@ -35,11 +35,8 @@ class data_raw(BaseModel):
 
 	id = Column(Integer, primary_key=True)
 	saveid = Column(String(100), unique=True)
-	netloc = Column(String(100))
-	scheme = Column(String(10))
+	url = Column(String(255))
 	method = Column(String(10))
-	path = Column(String(255))
-	query = Column(String(255))
 	body = Column(Text(2000))
 	# ua = Column(String(200))
 	# cookie = Column(String(2000))
@@ -65,3 +62,22 @@ class data_clean(BaseModel):
 	reqheaders = Column(Text(2000))
 	resheaders = Column(Text(1000))
 	time = Column(Time)
+
+
+class ScanTask(BaseModel):
+	"""扫描任务"""
+	id = Column(Integer, primary_key=True)
+	dataid = Column(Integer)
+	scantype = Column(Integer)
+	time = Column(Time)
+	status = Column(Integer) # 任务状态
+
+
+class VulnData(BaseModel):
+	"""漏洞报告"""
+	id = Column(Integer, primary_key=True)
+	dataid = Column(Integer)
+	scanid = Column(Integer)
+	vulntype = Column(Integer)
+	time = Column(Time)
+	status = Column(Integer )
