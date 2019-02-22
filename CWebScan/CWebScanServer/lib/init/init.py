@@ -17,9 +17,16 @@ from utils.globalParam import ScanLogger, CWebScanSetting
 ## 数据库
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+from sqlalchemy.ext.declarative import declarative_base
+
 engine = create_engine('mysql+pymysql://root:123456@127.0.0.1:3306/test')
 DB_Session = sessionmaker(bind=engine)
-CWebScanSetting.MysqlSession = DB_Session()
+CWebScanSetting.DB_Session = DB_Session
+CWebScanSetting.engine = engine
+
+from lib.models.datamodel import init_db, drop_db
+drop_db()
+init_db()
 
 # 日志
 import logging

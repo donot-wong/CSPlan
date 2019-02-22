@@ -16,6 +16,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath
 from lib.rabbitqueue.initqueue import ToScanQueue
 from utils.DataStructure import RequestData
 from utils.globalParam import ScanLogger, CWebScanSetting
+from lib.models.datamodel import User
 
 def parseMain():
     connection = pika.BlockingConnection(pika.ConnectionParameters('localhost'))
@@ -39,7 +40,8 @@ def parseMain():
 
         # 原始数据存储
         # ...
-        print(CWebScanSetting.MysqlSession.execute('show databases').fetchall())
+
+        # print(CWebScanSetting.MysqlSession.execute('show databases').fetchall())
 
         if chromeType == 'formData' or chromeType == 'raw':
             parseObj = ParseBaseClass.ParseBase(postDataJson['url'], chromeType, contentType, postDataJson['requestBody'])
@@ -63,6 +65,10 @@ def parseMain():
 
         # 清洗后数据存储
         # ...
+        session = CWebScanSetting.DB_Session()
+        user = User(name=res.netloc)
+        session.add(user)
+        session.commit()
         ToScanQueue.basic_publish(exchange='', routing_key='toscanqueue', body=pickle.dumps(res))
 
 
