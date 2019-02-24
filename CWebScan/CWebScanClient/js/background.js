@@ -52,6 +52,7 @@ function saveReqHeaders2Storage(InitId, requestId, reqHeaders){
 		var existData = {}
 		existData['reqHeaders'] = saveReqHeadersDict;
 	}
+	// console.log(reqHeaders);
 	sessionStorage.setItem(saveKey, JSON.stringify(existData));
 }
 
@@ -128,6 +129,7 @@ chrome.webRequest.onBeforeRequest.addListener(
 chrome.webRequest.onSendHeaders.addListener(
 	function(details){
 		//  || details.type == 'script'
+		console.log(details);
 		if (details.type == 'main_frame' || details.type == 'sub_frame' || details.type == 'xmlhttprequest' || details.type == 'other') {
 			var requestId = details.requestId;
 			var initiator = details.initiator;
@@ -138,7 +140,7 @@ chrome.webRequest.onSendHeaders.addListener(
 		}
 	},
 	{urls: ["<all_urls>"]},
-	['requestHeaders']
+	['requestHeaders', 'extraHeaders']
 );
 
 
@@ -157,7 +159,7 @@ chrome.webRequest.onBeforeRedirect.addListener(
         }
     },
 	{urls: ['<all_urls>']},
-	["responseHeaders"]
+	["responseHeaders", 'extraHeaders']
 );
 
 
@@ -176,5 +178,5 @@ chrome.webRequest.onResponseStarted.addListener(
         }
     },
     {urls: ["<all_urls>"]}, 
-    ["responseHeaders"]
+    ["responseHeaders", 'extraHeaders']
 );

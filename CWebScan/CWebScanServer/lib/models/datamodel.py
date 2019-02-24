@@ -5,8 +5,9 @@
 # @Link    : https://blog.donot.me
 
 from sqlalchemy import Column
-from sqlalchemy.types import CHAR, Integer, String, Time, Text
+from sqlalchemy.types import CHAR, Integer, String, DateTime, Text
 from sqlalchemy.ext.declarative import declarative_base
+import datetime
 import sys
 import os
 BaseModel = declarative_base()
@@ -34,7 +35,7 @@ class data_raw(BaseModel):
 	__tablename__ = 'data_raw'
 
 	id = Column(Integer, primary_key=True)
-	saveid = Column(String(100), unique=True)
+	saveid = Column(String(100))
 	url = Column(String(255))
 	method = Column(String(10))
 	body = Column(Text(2000))
@@ -42,7 +43,7 @@ class data_raw(BaseModel):
 	# cookie = Column(String(2000))
 	reqheaders = Column(Text(2000))
 	resheaders = Column(Text(1000))
-	time = Column(Time)
+	time = Column(DateTime, default=datetime.datetime.now)
 
 
 class data_clean(BaseModel):
@@ -50,34 +51,37 @@ class data_clean(BaseModel):
 	__tablename__ = 'data_clean'
 
 	id = Column(Integer, primary_key=True)
-	saveid = Column(String(100), unique=True)
+	saveid = Column(String(100))
 	netloc = Column(String(100))
 	scheme = Column(String(10))
 	method = Column(String(10))
 	path = Column(String(255))
 	query = Column(String(255))
 	body = Column(Text(5000))
-	ua = Column(String(200))
+	# ua = Column(String(200))
+	ct = Column(String(200))
 	cookie = Column(String(2000))
 	reqheaders = Column(Text(2000))
 	resheaders = Column(Text(1000))
-	time = Column(Time)
+	time = Column(DateTime, default=datetime.datetime.now)
 
 
 class ScanTask(BaseModel):
 	"""扫描任务"""
+	__tablename__ = 'scantask'
 	id = Column(Integer, primary_key=True)
 	dataid = Column(Integer)
 	scantype = Column(Integer)
-	time = Column(Time)
+	time = Column(DateTime)
 	status = Column(Integer) # 任务状态
 
 
 class VulnData(BaseModel):
 	"""漏洞报告"""
+	__tablename__ = 'vulndata'
 	id = Column(Integer, primary_key=True)
 	dataid = Column(Integer)
 	scanid = Column(Integer)
 	vulntype = Column(Integer)
-	time = Column(Time)
+	time = Column(DateTime)
 	status = Column(Integer )

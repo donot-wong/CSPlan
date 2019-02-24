@@ -11,7 +11,6 @@ import json
 from . import ParseBaseClass
 import sys
 import os
-import datetime
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__)))))
 from lib.rabbitqueue.initqueue import ToScanQueue
@@ -39,10 +38,22 @@ def parseMain():
         except Exception as e:
             contentType = ''
 
+        # print(reqHeaders)
+        try:
+            cookie = reqHeaders['Cookie']
+        except Exception as e:
+            cookie = ''
+
         # 原始数据存储
         # ...
-        save2data_raw = data_raw(saveid = postDataJson['InitId']+postDataJson['requestId'], url = postDataJson['url'], method = postDataJson['method'], 
-            body=postDataJson['requestBody'], reqHeaders = postDataJson['reqHeaders'], resHeaders = postDataJson['resHeaders'], time = datetime.datetime)
+        save2data_raw = data_raw(
+            saveid = postDataJson['InitId']+postDataJson['requestId'], 
+            url = postDataJson['url'], 
+            method = postDataJson['method'], 
+            body = postDataJson['requestBody'] if chromeType != 'empty' else '' , 
+            reqheaders = str(postDataJson['reqHeaders']), 
+            resheaders = str(postDataJson['resHeaders'])
+        )
         # print(CWebScanSetting.MysqlSession.execute('show databases').fetchall())
 
         if chromeType == 'formData' or chromeType == 'raw':
@@ -59,7 +70,11 @@ def parseMain():
 
         res.method = postDataJson['method']
         res.url = postDataJson['url']
-        res.resip = postDataJson['resIp']
+        try:
+            res.resip = postDataJson['resIp']
+        except Exception as e:
+            res.resip = ''
+        
         res.statuscode = postDataJson['statusCode']
         res.reqHeaders = reqHeaders
         res.resHeaders = postDataJson['resHeaders']
@@ -67,9 +82,25 @@ def parseMain():
 
         # 清洗后数据存储
         # ...
+
+        save2data_clean = data_clean(
+            saveid = postDataJson['InitId']+postDataJson['requestId'], 
+            netloc = res.netloc,
+            scheme = res.scheme,
+            method = res.method,
+            path = res.path,
+            query = res.query,
+            body = postDataJson['requestBody'] if chromeType != 'empty' else '' ,
+            ct = contentType,
+            cookie = cookie,
+            reqheaders = str(res.reqHeaders),
+            resheaders = str(res.resHeaders)
+        )
+
         session = CWebScanSetting.DB_Session()
-        user = User(name=res.netloc)
-        session.add(user)
+        # user = User(name=res.netloc)
+        session.add(save2data_raw)
+        session.add(save2data_clean)
         session.commit()
         ToScanQueue.basic_publish(exchange='', routing_key='toscanqueue', body=pickle.dumps(res))
 

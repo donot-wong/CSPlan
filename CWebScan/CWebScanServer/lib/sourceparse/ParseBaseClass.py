@@ -85,7 +85,7 @@ class ParseBase(object):
 		self.ret.scheme = o.scheme
 		self.ret.netloc = o.netloc
 		self.ret.path = o.path
-		self.query = o.query
+		self.ret.query = o.query
 		getParemDicts = parse_qs(o.query, keep_blank_values=True)
 		self.ret.getData = getParemDicts
 
