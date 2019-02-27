@@ -73,9 +73,9 @@ class ParseBase(object):
 
 		elif self.chormeType == 'raw':
 			res = self._parseRawData()
-			self.ret.postData = None
+			self.ret.postData = self.data
 		else:
-			self.ret.postData = None
+			self.ret.postData = self.data
 
 	def parseUrl(self):
 		'''

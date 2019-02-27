@@ -9,7 +9,7 @@ import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__)))))
 from lib.sourceparse.main import parseMain
-from lib.scandistribution.distribute import distributeMain
+# from lib.scandistribution.distribute import distributeMain
 from utils.globalParam import ScanLogger, CWebScanSetting
 ## 服务端环境初始化
 
@@ -46,9 +46,9 @@ p.start()
 
 
 # 任务分发子进程
-p = multiprocessing.Process(target=distributeMain)
-p.daemon = False
-p.start()
+# p = multiprocessing.Process(target=distributeMain)
+# p.daemon = False
+# p.start()
 
 
 # sqlinject扫描子进程

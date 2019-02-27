@@ -112,14 +112,23 @@ chrome.webRequest.onBeforeRequest.addListener(
 	        				}
 		        		}
 		        	}
-		        	saveReqbody2Storage(InitId, requestId, requrl, method, initiator, bodyType, requestBody);
+		        	if (details.requestBody.hasOwnProperty('error')) {
+		        		var bodyType = 'error';
+		        	}
 	        	}else{
 	        		var bodyType = 'empty';
+	        	}
+
+	        	if (bodyType != 'empty' && bodyType != 'error' ) {
+	        		saveReqbody2Storage(InitId, requestId, requrl, method, initiator, bodyType, requestBody);
+	        	}else{
 	        		saveReqbody2Storage(InitId, requestId, requrl, method, initiator, bodyType);
 	        	}
+
 			}else{
 				// Done
 			}
+
         }
     },
     {urls: ["<all_urls>"]}, 
@@ -129,7 +138,7 @@ chrome.webRequest.onBeforeRequest.addListener(
 chrome.webRequest.onSendHeaders.addListener(
 	function(details){
 		//  || details.type == 'script'
-		console.log(details);
+		// console.log(details);
 		if (details.type == 'main_frame' || details.type == 'sub_frame' || details.type == 'xmlhttprequest' || details.type == 'other') {
 			var requestId = details.requestId;
 			var initiator = details.initiator;
