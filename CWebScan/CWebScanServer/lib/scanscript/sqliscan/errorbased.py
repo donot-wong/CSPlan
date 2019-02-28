@@ -66,7 +66,9 @@ plainArray = [
     'Unclosed quotation mark after the character string',
     'You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near',
 	'PDOStatement::execute(): SQLSTATE[42601]: Syntax error:',
-    '<b>SQL error: </b> no such column'            
+    '<b>SQL error: </b> no such column',
+    '附近有语法错误',
+    '后的引号不完整'
 ]
 regexArray = [
 	r"/(Incorrect\ssyntax\snear\s'[^']*')/",

@@ -12,11 +12,13 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath
 from lib.rabbitqueue.consumerBase import ConsumerBase
 from utils.DataStructure import RequestData
 from utils.globalParam import ScanLogger
+from concurrent.futures import ThreadPoolExecutor
 
 
 class DistributeConsumer(ConsumerBase):
     def __init__(self, ampq_url, queue_name, routing_key):
         super(DistributeConsumer, self).__init__(ampq_url, queue_name, routing_key)
+        self.pool =  ThreadPoolExecutor(128)
 
     def on_message(self, unused_channel, basic_deliver, properties, body):
         data = pickle.loads(body)
