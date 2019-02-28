@@ -8,7 +8,7 @@ import multiprocessing
 import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__)))))
-from lib.sourceparse.main import parseMain
+from lib.sourceparse.main import parseMain, trans2distribute
 from lib.scandistribution.distribute import distributeMain
 from utils.globalParam import ScanLogger, CWebScanSetting
 ## 服务端环境初始化
@@ -39,16 +39,30 @@ loghandler.setFormatter(logging_format)
 ScanLogger.addHandler(loghandler)
 
 
-# 消费者子进程
-p = multiprocessing.Process(target=parseMain)
+########################################################################################################################
+# 源数据解析子进程
+QueueParseMain2distributeMain = multiprocessing.Queue()
+p = multiprocessing.Process(target=parseMain, args=(QueueParseMain2distributeMain,))
 p.daemon = False
 p.start()
 
+# 源书记聚解析结果分发子进程
+p = multiprocessing.Process(target=trans2distribute, args=(QueueParseMain2distributeMain,))
+p.daemon = False
+p.start()
+########################################################################################################################
 
-# 任务分发子进程
+
+
+
+########################################################################################################################
+# 任务调度处理子进程
 p = multiprocessing.Process(target=distributeMain)
 p.daemon = False
 p.start()
+
+# 任务分发处理子进程
+########################################################################################################################
 
 
 # sqlinject扫描子进程

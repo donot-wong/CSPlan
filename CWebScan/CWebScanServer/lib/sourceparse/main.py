@@ -15,6 +15,7 @@ import os
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__)))))
 from lib.rabbitqueue.consumerBase import ConsumerBase
+from lib.rabbitqueue.producerBase import PublisherBase
 from utils.DataStructure import RequestData
 from utils.globalParam import ScanLogger, CWebScanSetting
 from lib.models.datamodel import User, data_raw, data_clean
@@ -112,29 +113,32 @@ from lib.models.datamodel import User, data_raw, data_clean
 
 #     channel.basic_consume(callback, queue='dataprehandlequeue', no_ack=True)
 #     channel.start_consuming()
+
 class ParseConsumer(ConsumerBase):
-
-    def __init__(self, amqp_url, queue_name, routing_key):
+    TransQUEUE = None
+    def __init__(self, amqp_url, queue_name, routing_key, q):
         super(ParseConsumer, self).__init__(amqp_url, queue_name, routing_key)
-
-    def send2distribute(self):
-        pass
+        self.TransQUEUE = q
 
     def on_message(self, unused_channel, basic_deliver, properties, body):
         data = json.loads(pickle.loads(body))
         ScanLogger.warning('ParseConsumer Received message # %s from %s: %s',
                     basic_deliver.delivery_tag, properties.app_id, data['url'])
         self.acknowledge_message(basic_deliver.delivery_tag)
-        self._channel.basic_publish('message', 'distribute.source', body, pika.BasicProperties(content_type='text/plain', delivery_mode=1))
+        self.TransQUEUE.put(body)
 
 
-def parseMain():
-    example = ParseConsumer('amqp://guest:guest@localhost:5672/%2F', 'parsesrcdata', 'parsesrcdata.source')
+def parseMain(q):
+    example = ParseConsumer('amqp://guest:guest@localhost:5672/%2F', 'parsesrcdata', 'parsesrcdata.source', q)
     try:
         example.run()
     except KeyboardInterrupt:
         example.stop()
 
+
+def trans2distribute(q):
+    example = PublisherBase('amqp://guest:guest@localhost:5672/%2F?connection_attempts=3&heartbeat_interval=3600', 'distribute', 'distribute.source', q)
+    example.run()
 
 # if __name__ == '__main__':
 #     parseTest = ParseBase('formData', 'application/x-www-form-urlencoded; charset=UTF-8', "{\"metadata[]\":[\"\"],\"path\":[\"%2FROOT%2FHOME\"]}")
