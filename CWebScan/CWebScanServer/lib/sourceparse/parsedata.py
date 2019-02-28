@@ -34,7 +34,7 @@ class ParseConsumer(ConsumerBase):
         # data = json.loads(pickle.loads(body))
         data_parsed = self.parse_message(body)
         ScanLogger.warning('ParseConsumer Received message # %s from %s: %s',
-                    basic_deliver.delivery_tag, properties.app_id, data['url'])
+                    basic_deliver.delivery_tag, properties.app_id, data_parsed.netloc)
         self.acknowledge_message(basic_deliver.delivery_tag)
         self.TransQUEUE.put(pickle.dumps(data_parsed))
 

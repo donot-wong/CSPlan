@@ -27,11 +27,6 @@ def trans2parseMain(q):
 
 @app.route('/Receive', methods = ['POST'])
 def ReceiveBody():
-    # try:
-    #     channel.basic_publish('message', 'parsesrcdata.source', pickle.dumps(request.get_data()), pika.BasicProperties(content_type='text/plain', delivery_mode=1))
-    # except Exception as e:
-    #     print(e)
-    #     print(request.get_data())
     QueueReceive2ParseMain.put(pickle.dumps(request.get_data()))
     return 'Ok'
 

@@ -21,7 +21,7 @@ class DistributeConsumer(ConsumerBase):
     def on_message(self, unused_channel, basic_deliver, properties, body):
         data = pickle.loads(body)
         ScanLogger.warning('DistributeConsumer received message # %s from %s: %s',
-                    basic_deliver.delivery_tag, properties.app_id, data['netloc'])
+                    basic_deliver.delivery_tag, properties.app_id, data.netloc)
         self.acknowledge_message(basic_deliver.delivery_tag)
 
 
