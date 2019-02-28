@@ -19,9 +19,9 @@ class DistributeConsumer(ConsumerBase):
         super(DistributeConsumer, self).__init__(ampq_url, queue_name, routing_key)
 
     def on_message(self, unused_channel, basic_deliver, properties, body):
-        data = json.loads(pickle.loads(body))
+        data = pickle.loads(body)
         ScanLogger.warning('DistributeConsumer received message # %s from %s: %s',
-                    basic_deliver.delivery_tag, properties.app_id, data['url'])
+                    basic_deliver.delivery_tag, properties.app_id, data['netloc'])
         self.acknowledge_message(basic_deliver.delivery_tag)
 
 

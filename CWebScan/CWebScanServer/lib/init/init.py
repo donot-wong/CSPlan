@@ -8,7 +8,7 @@ import multiprocessing
 import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__)))))
-from lib.sourceparse.main import parseMain, trans2distribute
+from lib.sourceparse.parsedata import parseMain, trans2distribute
 from lib.scandistribution.distribute import distributeMain
 from utils.globalParam import ScanLogger, CWebScanSetting
 ## 服务端环境初始化
