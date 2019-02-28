@@ -14,7 +14,7 @@ import sys
 import os
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__)))))
-# from lib.rabbitqueue.initqueue import ToScanQueue
+from lib.rabbitqueue.consumerBase import ConsumerBase
 from utils.DataStructure import RequestData
 from utils.globalParam import ScanLogger, CWebScanSetting
 from lib.models.datamodel import User, data_raw, data_clean
@@ -112,10 +112,24 @@ from lib.models.datamodel import User, data_raw, data_clean
 
 #     channel.basic_consume(callback, queue='dataprehandlequeue', no_ack=True)
 #     channel.start_consuming()
+class ParseConsumer(ConsumerBase):
+
+    def __init__(self, amqp_url, queue_name, routing_key):
+        super(ParseConsumer, self).__init__(amqp_url, queue_name, routing_key)
+
+    def send2distribute(self):
+        pass
+
+    def on_message(self, unused_channel, basic_deliver, properties, body):
+        data = json.loads(pickle.loads(body))
+        ScanLogger.warning('ParseConsumer Received message # %s from %s: %s',
+                    basic_deliver.delivery_tag, properties.app_id, data['url'])
+        self.acknowledge_message(basic_deliver.delivery_tag)
+        self._channel.basic_publish('message', 'distribute.source', body, pika.BasicProperties(content_type='text/plain', delivery_mode=1))
+
 
 def parseMain():
-    from lib.rabbitqueue.consumerBase import ExampleConsumer
-    example = ExampleConsumer('amqp://guest:guest@localhost:5672/%2F')
+    example = ParseConsumer('amqp://guest:guest@localhost:5672/%2F', 'parsesrcdata', 'parsesrcdata.source')
     try:
         example.run()
     except KeyboardInterrupt:

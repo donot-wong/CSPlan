@@ -6,22 +6,28 @@
 import pickle
 import pika
 import sys
+import json
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__)))))
-from lib.rabbitqueue.initqueue import SqliScanQueue, RceScanQueue, JsonpScanQueue
+from lib.rabbitqueue.consumerBase import ConsumerBase
 from utils.DataStructure import RequestData
 from utils.globalParam import ScanLogger
 
 
+class DistributeConsumer(ConsumerBase):
+    def __init__(self, ampq_url, queue_name, routing_key):
+        super(DistributeConsumer, self).__init__(ampq_url, queue_name, routing_key)
+
+    def on_message(self, unused_channel, basic_deliver, properties, body):
+        data = json.loads(pickle.loads(body))
+        ScanLogger.warning('DistributeConsumer received message # %s from %s: %s',
+                    basic_deliver.delivery_tag, properties.app_id, data['url'])
+        self.acknowledge_message(basic_deliver.delivery_tag)
+
+
 def distributeMain():
-	connection = pika.BlockingConnection(pika.ConnectionParameters('localhost'))
-	channel = connection.channel()
-
-	channel.queue_declare(queue="toscanqueue")
-
-	def callback(ch, method, properties, body):
-		reqData = pickle.loads(body)
-		
-
-	channel.basic_consume(callback, queue='toscanqueue', no_ack=True)
-	channel.start_consuming()
+    example = DistributeConsumer('amqp://guest:guest@localhost:5672/%2F', 'distribute', 'distribute.source')
+    try:
+        example.run()
+    except KeyboardInterrupt:
+        example.stop()

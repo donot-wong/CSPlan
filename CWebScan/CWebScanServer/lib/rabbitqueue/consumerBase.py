@@ -10,7 +10,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath
 from utils.globalParam import ScanLogger
 from utils.DataStructure import RequestData
 
-class ExampleConsumer(object):
+class ConsumerBase(object):
     """This is an example consumer that will handle unexpected interactions
     with RabbitMQ such as channel and connection closures.
 
@@ -28,7 +28,7 @@ class ExampleConsumer(object):
     QUEUE = 'text'
     ROUTING_KEY = 'example.text'
 
-    def __init__(self, amqp_url):
+    def __init__(self, amqp_url, queue_name, routing_key):
         """Create a new instance of the consumer class, passing in the AMQP
         URL used to connect to RabbitMQ.
 
@@ -40,6 +40,9 @@ class ExampleConsumer(object):
         self._closing = False
         self._consumer_tag = None
         self._url = amqp_url
+        self.QUEUE = queue_name
+        self.ROUTING_KEY = routing_key
+
 
     def connect(self):
         """This method connects to RabbitMQ, returning the connection handle.
