@@ -12,31 +12,41 @@ from urllib import parse
 import sys
 import os
 from . import ParseBaseClass
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__)))))
 from lib.rabbitqueue.consumerBase import ConsumerBase
 from lib.rabbitqueue.producerBase import PublisherBase
 from utils.DataStructure import RequestData
 from utils.globalParam import ScanLogger, CWebScanSetting
-from lib.models.datamodel import User, data_raw, data_clean
+from lib.models.datamodel import data_raw, data_clean
 
 
 class ParseConsumer(ConsumerBase):
     TransQUEUE = None
-    def __init__(self, amqp_url, queue_name, routing_key, q):
+    def __init__(self, amqp_url, queue_name, routing_key, q, dbsession):
         super(ParseConsumer, self).__init__(amqp_url, queue_name, routing_key)
         self.TransQUEUE = q
+        self.dbsession = dbsession
 
     def on_message(self, unused_channel, basic_deliver, properties, body):
         '''
         重写消息处理方法
         '''
-        # data = json.loads(pickle.loads(body))
+        scanflag = True
         data_parsed = self.parse_message(body)
+        if data_parsed.method == 'GET' and data_parsed.query == '':
+            scanflag = False
+        elif data_parsed.method == 'POST' and data_parsed.body == '' and data_parsed.query == '':
+            scanflag = False
+        elif data_parsed.statuscode >= 400:
+            scanflag = False
         ScanLogger.warning('ParseConsumer Received message # %s from %s: %s',
                     basic_deliver.delivery_tag, properties.app_id, data_parsed.netloc)
         self.acknowledge_message(basic_deliver.delivery_tag)
-        self.TransQUEUE.put(pickle.dumps(data_parsed))
+        if scanflag is True:
+            self.TransQUEUE.put(pickle.dumps(data_parsed))
 
     def parse_message(self, body):
         postDataJson = json.loads(pickle.loads(body))
@@ -61,10 +71,11 @@ class ParseConsumer(ConsumerBase):
             cookie = reqHeaders['Cookie']
         except Exception as e:
             cookie = ''
+        # Referer Origin User-Agent Accept-Language Accept-Encoding Accept
         # 原始数据存储
         # ...
         save2data_raw = data_raw(
-            saveid = postDataJson['InitId']+postDataJson['requestId'], 
+            saveid = postDataJson['InitId'] + postDataJson['requestId'], 
             url = postDataJson['url'], 
             method = postDataJson['method'], 
             body = parse.quote(postDataJson['requestBody']) if chromeType not in ['empty','error'] else '' , 
@@ -84,6 +95,8 @@ class ParseConsumer(ConsumerBase):
             parseObj = ParseBaseClass.ParseBase(postDataJson['url'], chromeType, contentType, '')
             res = parseObj.parse()
 
+        res.cookie = cookie
+        res.ct = contentType
         res.method = postDataJson['method']
         res.url = postDataJson['url']
         try:
@@ -91,6 +104,7 @@ class ParseConsumer(ConsumerBase):
         except Exception as e:
             res.resip = ''
         
+        res.saveid = postDataJson['InitId'] + postDataJson['requestId']
         res.statuscode = postDataJson['statusCode']
         res.reqHeaders = reqHeaders
         res.resHeaders = postDataJson['resHeaders']
@@ -100,27 +114,33 @@ class ParseConsumer(ConsumerBase):
         # ...
 
         save2data_clean = data_clean(
-            saveid = postDataJson['InitId']+postDataJson['requestId'], 
+            saveid = res.saveid, 
             netloc = res.netloc,
             scheme = res.scheme,
             method = res.method,
             path = res.path,
             query = res.query,
             body = parse.quote(str(res.postData)) if chromeType not in ['empty','error'] else '',
-            ct = contentType,
-            cookie = cookie,
+            ct = res.contentType,
+            cookie = res.cookie,
             reqheaders = parse.quote(str(res.reqHeaders)),
-            resheaders = parse.quote(str(res.resHeaders))
+            resheaders = parse.quote(str(res.resHeaders)),
+            statuscode = res.statuscode
         )
-
-        session = CWebScanSetting.DB_Session()
-        session.add(save2data_raw)
-        session.add(save2data_clean)
-        session.commit()  
+        ScanLogger.warning('ParseConsumer handle message # %s start...', res.saveid)
+        try:
+            session = self.dbsession()
+            session.add(save2data_raw)
+            session.add(save2data_clean)
+            session.commit()
+        except Exception as e:
+            raise e
         return res
 
 def parseMain(q):
-    example = ParseConsumer('amqp://guest:guest@localhost:5672/%2F', 'parsesrcdata', 'parsesrcdata.source', q)
+    engine = create_engine('mysql+pymysql://root:123456@127.0.0.1:3306/test')
+    DB_Session = sessionmaker(bind=engine)
+    example = ParseConsumer('amqp://guest:guest@localhost:5672/%2F', 'parsesrcdata', 'parsesrcdata.source', q, DB_Session)
     try:
         example.run()
     except KeyboardInterrupt:

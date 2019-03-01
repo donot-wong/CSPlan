@@ -11,6 +11,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath
 from lib.sourceparse.parsedata import parseMain, trans2distribute
 from lib.scandistribution.distribute import distributeMain, distributeTrans
 from lib.scanscript.sqliScan import SqliScanMain
+from lib.scanscript.rceScan import RceScanMain
 from utils.globalParam import ScanLogger, CWebScanSetting
 ## 服务端环境初始化
 
@@ -40,6 +41,7 @@ loghandler.setFormatter(logging_format)
 ScanLogger.addHandler(loghandler)
 
 
+
 ########################################################################################################################
 # 源数据解析子进程
 parseMainTransQueue = multiprocessing.Queue()
@@ -52,6 +54,7 @@ p = multiprocessing.Process(target=trans2distribute, args=(parseMainTransQueue,)
 p.daemon = False
 p.start()
 ########################################################################################################################
+
 
 
 
@@ -71,7 +74,14 @@ p.start()
 ########################################################################################################################
 
 
+
 # sqlinject扫描子进程
 p = multiprocessing.Process(target=SqliScanMain)
+p.daemon = False
+p.start()
+
+
+# rce扫描子进程
+p = multiprocessing.Process(target=RceScanMain)
 p.daemon = False
 p.start()

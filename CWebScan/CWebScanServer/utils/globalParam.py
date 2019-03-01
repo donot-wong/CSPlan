@@ -15,3 +15,16 @@ ScanLogger = logging.getLogger('CWebScanServer')
 BlackParamName = ['q', '_csrf']
 
 CWebScanSetting = AttribDict()
+
+
+ScanTaskVulnType = {
+	'sqli': 1,
+	'rce': 2,
+	'xss': 3
+}
+
+ScanTaskStatus = {
+	'running': 0,
+	'completed': 1,
+	'error': 2
+}

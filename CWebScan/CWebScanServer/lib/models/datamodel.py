@@ -23,13 +23,6 @@ def drop_db():
     BaseModel.metadata.drop_all(CWebScanSetting.engine)
 
 
-class User(BaseModel):
-    __tablename__ = 'user'
-
-    id = Column(Integer, primary_key=True)
-    name = Column(CHAR(100)) # or Column(String(30))
-
-
 class data_raw(BaseModel):
 	"""原始数据"""
 	__tablename__ = 'data_raw'
@@ -38,11 +31,11 @@ class data_raw(BaseModel):
 	saveid = Column(String(100))
 	url = Column(Text(1000))
 	method = Column(String(10))
-	body = Column(Text(2000))
+	body = Column(Text(5000))
 	# ua = Column(String(200))
 	# cookie = Column(String(2000))
-	reqheaders = Column(Text(2000))
-	resheaders = Column(Text(1000))
+	reqheaders = Column(Text(5000))
+	resheaders = Column(Text(5000))
 	time = Column(DateTime, default=datetime.datetime.now)
 
 
@@ -55,14 +48,15 @@ class data_clean(BaseModel):
 	netloc = Column(String(100))
 	scheme = Column(String(10))
 	method = Column(String(10))
-	path = Column(String(255))
+	path = Column(Text(1000))
 	query = Column(Text(1000))
 	body = Column(Text(5000))
 	# ua = Column(String(200))
 	ct = Column(String(200))
-	cookie = Column(String(3000))
-	reqheaders = Column(Text(2000))
-	resheaders = Column(Text(1000))
+	cookie = Column(String(5000))
+	reqheaders = Column(Text(5000))
+	resheaders = Column(Text(5000))
+	statuscode = Column(Integer)
 	time = Column(DateTime, default=datetime.datetime.now)
 
 
@@ -70,9 +64,9 @@ class ScanTask(BaseModel):
 	"""扫描任务"""
 	__tablename__ = 'scantask'
 	id = Column(Integer, primary_key=True)
-	dataid = Column(Integer)
+	dataid = Column(String(100)) # unique
 	scantype = Column(Integer)
-	time = Column(DateTime)
+	time = Column(DateTime, default=datetime.datetime.now)
 	status = Column(Integer) # 任务状态
 
 
@@ -80,8 +74,8 @@ class VulnData(BaseModel):
 	"""漏洞报告"""
 	__tablename__ = 'vulndata'
 	id = Column(Integer, primary_key=True)
-	dataid = Column(Integer)
+	dataid = Column(String(100))
 	scanid = Column(Integer)
 	vulntype = Column(Integer)
-	time = Column(DateTime)
-	status = Column(Integer )
+	time = Column(DateTime, default=datetime.datetime.now)
+	status = Column(Integer)
