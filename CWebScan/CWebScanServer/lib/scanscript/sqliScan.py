@@ -8,13 +8,15 @@ import pickle
 import pika
 import sys
 import os
+import json
 import requests
+import time
 from concurrent.futures import ThreadPoolExecutor
-import sys
-import os
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__)))))
 from lib.rabbitqueue.consumerBase import ConsumerBase
+from utils.globalParam import ScanLogger
+from utils.DataStructure import RequestData
 
 class SqliScanBase(object):
     """docstring for SqliScanBase"""
@@ -34,7 +36,7 @@ class SqliScanBase(object):
 
 class SqliScanConsumer(ConsumerBase):
     def __init__(self, amqp_url, queue_name, routing_key):
-        super(ParseConsumer, self).__init__(amqp_url, queue_name, routing_key)
+        super(SqliScanConsumer, self).__init__(amqp_url, queue_name, routing_key)
         self.scaning = 0
         self.scaned = 0
         self.pool =  ThreadPoolExecutor(30)
@@ -43,17 +45,18 @@ class SqliScanConsumer(ConsumerBase):
         '''
         重写消息处理方法
         '''
-        # data = json.loads(pickle.loads(body))
-        # data_parsed = self.parse_message(body)
-        # ScanLogger.warning('ParseConsumer Received message # %s from %s: %s',
-        #             basic_deliver.delivery_tag, properties.app_id, data_parsed.netloc)
-        sqliscanObj = SqliScanBase(body)
-        sqliscanObjfeaeture = self.pool.submit(sqliscanObj.run)
-        sqliscanObj.add_done_callback(self.threadcallback)
-        self.scaning = self.scaning + 1
-        if :
-            pass
+        data = pickle.loads(body)
+        ScanLogger.warning('SqliScanConsumer Received message # %s from %s: %s',
+                    basic_deliver.delivery_tag, properties.app_id, data.netloc)
         self.acknowledge_message(basic_deliver.delivery_tag)
+        # sqliscanObj = SqliScanBase(body)
+        # sqliscanObjfeaeture = self.pool.submit(sqliscanObj.run)
+        # sqliscanObj.add_done_callback(self.threadcallback)
+        # self.scaning = self.scaning + 1
+        # self.acknowledge_message(basic_deliver.delivery_tag)
+        # while self.scaning > 35:
+        #     ScanLogger.warning("SqliScanConsumer ThreadPool more than 30, now: {scaningnum}".format(scaningnum=self.scaning))
+        #     time.sleep(3)
 
     def threadcallback(self):
         self.scaning = self.scaning - 1
@@ -62,7 +65,7 @@ class SqliScanConsumer(ConsumerBase):
 
 
 def SqliScanMain():
-    example = SqliScanConsumer('amqp://guest:guest@localhost:5672/%2F', 'sqliscan', 'sqliscan.source')
+    example = SqliScanConsumer('amqp://guest:guest@localhost:5672/%2F', 'sqliscan', 'sqliscan.key')
     try:
         example.run()
     except KeyboardInterrupt:

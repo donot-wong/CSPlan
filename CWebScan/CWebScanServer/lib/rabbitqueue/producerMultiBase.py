@@ -3,15 +3,17 @@
 import logging
 import pika
 import json
+import multiprocessing
 import sys
 import os
-import multiprocessing
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__)))))
 from utils.globalParam import ScanLogger
 from utils.DataStructure import RequestData
+# LOG_FORMAT = ('%(levelname) -10s %(asctime)s %(name) -30s %(funcName) '
+#                 '-35s %(lineno) -5d: %(message)s')
+# ScanLogger = logging.getLogger(__name__)
 
-
-class PublisherBase(object):
+class PublisherMultiBase(object):
     """This is an example publisher that will handle unexpected interactions
     with RabbitMQ such as channel and connection closures.
 
@@ -27,11 +29,11 @@ class PublisherBase(object):
     EXCHANGE = 'message'
     EXCHANGE_TYPE = 'topic'
     PUBLISH_INTERVAL = 0.01
-    QUEUE = 'text'
-    ROUTING_KEY = 'example.text'
+    QUEUE = []
+    ROUTING_KEY = []
     TransQUEUE = None
 
-    def __init__(self, amqp_url, queue_name, routing_key, q):
+    def __init__(self, amqp_url, queue_name_list, routing_key_list, q):
         """Setup the example publisher object, passing in the URL we will use
         to connect to RabbitMQ.
 
@@ -48,9 +50,12 @@ class PublisherBase(object):
 
         self._stopping = False
         self._url = amqp_url
-        self.QUEUE = queue_name
-        self.ROUTING_KEY = routing_key
+        if len(queue_name_list) != len(routing_key_list):
+            ScanLogger.error('producerMultiBase Init Error queue_name_list not match routing_key_list')
+        self.QUEUEList = queue_name_list
+        self.ROUTING_KEYList = routing_key_list
         self.TransQUEUE = q
+        self.queue_bind_cnt = 0
 
     def connect(self):
         """This method connects to RabbitMQ, returning the connection handle.
@@ -167,9 +172,9 @@ class PublisherBase(object):
 
         """
         ScanLogger.info('Exchange declared')
-        self.setup_queue(self.QUEUE)
+        self.setup_queue(self.QUEUEList)
 
-    def setup_queue(self, queue_name):
+    def setup_queue(self, queue_name_list):
         """Setup the queue on RabbitMQ by invoking the Queue.Declare RPC
         command. When it is complete, the on_queue_declareok method will
         be invoked by pika.
@@ -177,8 +182,9 @@ class PublisherBase(object):
         :param str|unicode queue_name: The name of the queue to declare.
 
         """
-        ScanLogger.info('Declaring queue %s', queue_name)
-        self._channel.queue_declare(self.on_queue_declareok, queue_name)
+        # ScanLogger.info('Declaring queue %s', queue_name_list)
+        for queue_name in queue_name_list:
+            self._channel.queue_declare(self.on_queue_declareok, queue_name)
 
     def on_queue_declareok(self, method_frame):
         """Method invoked by pika when the Queue.Declare RPC call made in
@@ -190,17 +196,19 @@ class PublisherBase(object):
         :param pika.frame.Method method_frame: The Queue.DeclareOk frame
 
         """
-        ScanLogger.info('Binding %s to %s with %s',
-                    self.EXCHANGE, self.QUEUE, self.ROUTING_KEY)
-        self._channel.queue_bind(self.on_bindok, self.QUEUE,
-                                 self.EXCHANGE, self.ROUTING_KEY)
+        # ScanLogger.info('Binding %s to %s with %s',
+                    # self.EXCHANGE, self.QUEUE, self.ROUTING_KEY)
+        for i in range(len(self.QUEUEList)):
+            self._channel.queue_bind(self.on_bindok, self.QUEUEList[i], self.EXCHANGE, self.ROUTING_KEYList[i])
 
     def on_bindok(self, unused_frame):
         """This method is invoked by pika when it receives the Queue.BindOk
         response from RabbitMQ. Since we know we're now setup and bound, it's
         time to start publishing."""
         ScanLogger.info('Queue bound')
-        self.start_publishing()
+        self.queue_bind_cnt = self.queue_bind_cnt + 1
+        if self.queue_bind_cnt == len(self.QUEUEList):
+            self.start_publishing()
 
     def start_publishing(self):
         """This method will enable delivery confirmations and schedule the
@@ -280,8 +288,8 @@ class PublisherBase(object):
 
         message = self.TransQUEUE.get()
 
-        self._channel.basic_publish(self.EXCHANGE, self.ROUTING_KEY,
-                                    message)
+        self._channel.basic_publish(self.EXCHANGE, message['routing_key'],
+                                    message['body'])
         self._message_number += 1
         self._deliveries.append(self._message_number)
         ScanLogger.info('Published message # %i', self._message_number)
@@ -340,14 +348,13 @@ class PublisherBase(object):
 
 
 def main(q):
-    # logging.basicConfig(level=logging.DEBUG, format=LOG_FORMAT)
-
-    # Connect to localhost:5672 as guest with the password guest and virtual host "/" (%2F)
-    example = PublisherBase('amqp://guest:guest@localhost:5672/%2F?connection_attempts=3&heartbeat_interval=3600', 'test', 'test.key', q)
+    logging.basicConfig(level=logging.DEBUG, format=LOG_FORMAT)
+    example = PublisherMultiBase('amqp://guest:guest@localhost:5672/%2F?connection_attempts=3&heartbeat_interval=3600', ['queue1', 'queue2', 'queue3'], ['queue1.key', 'queue2.key', 'queue3.key'], q)
     example.run()
-    # example.publish_message('This is a message!')
-
 
 if __name__ == '__main__':
     testqueue = multiprocessing.Queue()
     main(testqueue)
+    message = [{'routing_key': 'queue1.key', 'body': '1'}, {'routing_key': 'queue2.key', 'body': '2'}, {'routing_key': 'queue3.key', 'body': '3'}]
+    for i in message:
+        testqueue.put(i)

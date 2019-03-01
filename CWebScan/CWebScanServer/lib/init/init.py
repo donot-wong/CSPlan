@@ -9,7 +9,8 @@ import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__)))))
 from lib.sourceparse.parsedata import parseMain, trans2distribute
-from lib.scandistribution.distribute import distributeMain
+from lib.scandistribution.distribute import distributeMain, distributeTrans
+from lib.scanscript.sqliScan import SqliScanMain
 from utils.globalParam import ScanLogger, CWebScanSetting
 ## 服务端环境初始化
 
@@ -41,13 +42,13 @@ ScanLogger.addHandler(loghandler)
 
 ########################################################################################################################
 # 源数据解析子进程
-QueueParseMain2distributeMain = multiprocessing.Queue()
-p = multiprocessing.Process(target=parseMain, args=(QueueParseMain2distributeMain,))
+parseMainTransQueue = multiprocessing.Queue()
+p = multiprocessing.Process(target=parseMain, args=(parseMainTransQueue,))
 p.daemon = False
 p.start()
 
-# 源书记聚解析结果分发子进程
-p = multiprocessing.Process(target=trans2distribute, args=(QueueParseMain2distributeMain,))
+# 源数据解析结果分发子进程
+p = multiprocessing.Process(target=trans2distribute, args=(parseMainTransQueue,))
 p.daemon = False
 p.start()
 ########################################################################################################################
@@ -57,15 +58,20 @@ p.start()
 
 ########################################################################################################################
 # 任务调度处理子进程
-p = multiprocessing.Process(target=distributeMain)
+distributeTransQueue = multiprocessing.Queue()
+p = multiprocessing.Process(target=distributeMain, args=(distributeTransQueue,))
 p.daemon = False
 p.start()
 
+# 分发任务调度结果
+p = multiprocessing.Process(target=distributeTrans, args=(distributeTransQueue,))
+p.daemon = False
+p.start()
 # 任务分发处理子进程
 ########################################################################################################################
 
 
 # sqlinject扫描子进程
-# p = multiprocessing.Process(target=)
-# p.daemon = False
-# p.start()
+p = multiprocessing.Process(target=SqliScanMain)
+p.daemon = False
+p.start()
