@@ -3,12 +3,7 @@
 # @Date    : 2019-02-20 17:02:28
 # @Author  : donot (donot@donot.me)
 # @Link    : https://blog.donot.me
-
-import pickle
-import pika
-import sys
-import os
-
+import requests
 
 plainArray = [
 	'Microsoft OLE DB Provider for ODBC Drivers',
@@ -97,3 +92,13 @@ regexArray = [
 	r"/(Unknown column '[^']+' in '\w+ clause')/",
 ]
 
+
+def test():
+	res = requests.get('http://43.247.91.228:81/vulnerabilities/sqli/?id=1&Submit=Submit#')
+	print(res.text)
+	for i in plainArray:
+		if i in res.text:
+			print('yes')
+
+if __name__ == '__main__':
+	test()

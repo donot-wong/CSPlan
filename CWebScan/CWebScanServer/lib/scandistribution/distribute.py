@@ -34,8 +34,10 @@ class DistributeConsumer(ConsumerBase):
         scanid_rce = self.save2db(data, ScanTaskVulnType['rce'])
         ScanLogger.warning('DistributeConsumer generate scanid %s' % scanid_sqli)
         ScanLogger.warning('DistributeConsumer generate scanid %s' % scanid_rce)
-        self.transQueue.put({'routing_key': 'sqliscan.key', 'body': body, 'scanid': scanid_sqli})
-        self.transQueue.put({'routing_key': 'rcescan.key', 'body': body, 'scanid': scanid_rce})
+        data.scanid = scanid_sqli
+        self.transQueue.put({'routing_key': 'sqliscan.key', 'body': pickle.dumps(data)})
+        data.scanid = scanid_rce
+        self.transQueue.put({'routing_key': 'rcescan.key', 'body': pickle.dumps(data)})
         self.acknowledge_message(basic_deliver.delivery_tag)
 
     def save2db(self, data, vulntype):

@@ -87,7 +87,7 @@ class ParseBase(object):
 		self.ret.path = o.path
 		self.ret.query = o.query
 		getParemDicts = parse_qs(o.query, keep_blank_values=True)
-		self.ret.getData = getParemDicts
+		self.ret.getData = dict([(k,v[0]) for k,v in getParemDicts.items()])
 
 
 	def parseCT(self):
@@ -109,6 +109,7 @@ class ParseBase(object):
 			ScanLogger.info('Parse ContentType Failed, ContentType: ' + self.contentType)
 
 	def parse(self):
+		self.ret.postData = ''
 		if self.chormeType != 'empty':
 			self.parseData()
 		self.parseCT()

@@ -28,3 +28,10 @@ ScanTaskStatus = {
 	'completed': 1,
 	'error': 2
 }
+
+VulnType = {
+	'sqli-error': 1,
+	'sqli-boolean': 2,
+	'sqli-time': 3,
+	'rce': 4
+}

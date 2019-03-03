@@ -40,6 +40,8 @@ class ParseConsumer(ConsumerBase):
             scanflag = False
         elif data_parsed.method == 'POST' and data_parsed.body == '' and data_parsed.query == '':
             scanflag = False
+        elif data_parsed.query == '' and data_parsed.body == '':
+            scanflag = False
         elif data_parsed.statuscode >= 400:
             scanflag = False
         ScanLogger.warning('ParseConsumer Received message # %s from %s: %s',
@@ -110,6 +112,9 @@ class ParseConsumer(ConsumerBase):
         res.resHeaders = postDataJson['resHeaders']
         # print(res.__dict__)
 
+        if chromeType in ['empty','error']:
+            res.postData = ''
+
         # 清洗后数据存储
         # ...
 
@@ -120,8 +125,8 @@ class ParseConsumer(ConsumerBase):
             method = res.method,
             path = res.path,
             query = res.query,
-            body = parse.quote(str(res.postData)) if chromeType not in ['empty','error'] else '',
-            ct = res.contentType,
+            body = parse.quote(str(res.postData)),
+            ct = res.ct,
             cookie = res.cookie,
             reqheaders = parse.quote(str(res.reqHeaders)),
             resheaders = parse.quote(str(res.resHeaders)),

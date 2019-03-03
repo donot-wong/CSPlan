@@ -29,6 +29,7 @@ class data_raw(BaseModel):
 
 	id = Column(Integer, primary_key=True)
 	saveid = Column(String(100))
+	chrometype = Column(String(5))
 	url = Column(Text(1000))
 	method = Column(String(10))
 	body = Column(Text(5000))
