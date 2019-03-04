@@ -56,9 +56,7 @@ class SqliScanBase(object):
         ScanLogger.warning('init function called')
 
     def errorbased(self):
-        # ScanLogger.warning('errorbased called SqliScanBase')
         if self.method == 'GET':
-            # ScanLogger.warning('errorbased function: start GET method test!')
             for key, value in self.getData.items():
                 _getData = copy.copy(self.getData)
                 _getData[key] = value + '\''
@@ -68,15 +66,23 @@ class SqliScanBase(object):
                 if hasSqliVuln:
                     self.saveScanResult(VulnType['sqli-error'])
                     self.changeScanStatus()
-                    # return
                     ScanLogger.warning('SqliScanBase find errorbased sqli! scanid: %s, saveid: %s' % (self.scanid, self.saveid))
                     return 0
         elif self.method == 'POST':
-            _postData = self.postData
+            # _postData = copy.copy(self.postData)
+            for key, value in self.postData.items():
+                _postData = copy.copy(self.postData)
+                _postData[key] = value + '\''
+                res = self.reqSend(_postData, self.url, self.method, self.cookie, self.ua, self.ct, self.SrcRequestHeaders)
+                self.sendreqCnt = self.sendreqCnt + 1
+                hasSqliVuln = self.checkIsErrorBaseSqli(res)
+                if hasSqliVuln:
+                    self.saveScanResult(VulnType['sqli-error'])
+                    self.changeScanStatus()
+                    return 0
         else:
             ScanLogger.warning('Can not handle this request\'s method: %s' % self.method)
         self.changeScanStatus()
-
 
 
     def reqSend(self, data, url, method, cookie, ua, ct, header):
@@ -86,10 +92,14 @@ class SqliScanBase(object):
             headers = header
         )
         prepped = s.prepare_request(req)
-        resp = s.send(prepped,
-            verify=False,
-            timeout=3
-        )
+        try:
+            resp = s.send(prepped,
+                verify=False,
+                timeout=3
+            )
+        except Exception as e:
+            resp = None
+
         ScanLogger.warning('SqliScanBase reqSend function: send requests to: %s' % req.url)
         return resp
 
