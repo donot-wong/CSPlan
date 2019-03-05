@@ -80,3 +80,4 @@ class VulnData(BaseModel):
 	vulntype = Column(Integer)
 	time = Column(DateTime, default=datetime.datetime.now)
 	status = Column(Integer)
+	paramname = Column(String(100))

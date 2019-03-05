@@ -16,7 +16,7 @@ BlackParamName = ['q', '_csrf']
 
 CWebScanSetting = AttribDict()
 
-SlackHookUrl = "https://hooks.slack.com/services/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"
+
 
 ScanTaskVulnType = {
 	'sqli': 1,
@@ -36,3 +36,7 @@ VulnType = {
 	'sqli-time': 3,
 	'rce': 4
 }
+
+SqliVulnAlertTemplate = "SQL Inject({type}) Vuln Find! VulnId: {vulnid}, ScanId: {scanid}, Url: {url}, Method: {method}, Paramname: {paramname}, details please click url: {detailUrl}"
+RceVulnAlertTemplate = "Rce{type} Vuln Find! ScanId: {scanid}, Url: {url}, Method: {method}, Paramname: {paramname}, details please click url: {detailUrl}"
+ScanTaskErrorAlertTemplate = "ScanTask Error Alert! ScanId: {scanid}, ScanType: {scantype}, StartTime: {starttime}, ErrorInfo: {errorinfo}, MSG: {msg}"

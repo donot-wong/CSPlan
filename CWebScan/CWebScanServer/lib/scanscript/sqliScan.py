@@ -19,10 +19,11 @@ from sqlalchemy.orm import sessionmaker
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__)))))
 from lib.rabbitqueue.consumerBase import ConsumerBase
-from utils.globalParam import ScanLogger,  BlackParamName, ScanTaskStatus, VulnType
+from utils.globalParam import ScanLogger,  BlackParamName, ScanTaskStatus, VulnType, SqliVulnAlertTemplate
 from utils.DataStructure import RequestData
 from lib.scanscript.sqliscan.errorbased import plainArray, regexArray
 from lib.models.datamodel import ScanTask, VulnData
+from utils.commonFunc import send2slack
 
 
 class SqliScanBase(object):
@@ -64,8 +65,9 @@ class SqliScanBase(object):
                 self.sendreqCnt = self.sendreqCnt + 1
                 hasSqliVuln = self.checkIsErrorBaseSqli(res)
                 if hasSqliVuln:
-                    self.saveScanResult(VulnType['sqli-error'])
+                    vulnid = self.saveScanResult(VulnType['sqli-error'], key)
                     self.changeScanStatus()
+                    send2slack(SqliVulnAlertTemplate.format(type='errorbased',vulnid=vulnid, scanid=self.scanid, url=self.url, method=self.method, paramname=key, detailUrl="http://webscan.donot.me?apikey=key&vulnid="+str(vulnid)))
                     ScanLogger.warning('SqliScanBase find errorbased sqli! scanid: %s, saveid: %s' % (self.scanid, self.saveid))
                     return 0
         elif self.method == 'POST':
@@ -76,8 +78,9 @@ class SqliScanBase(object):
                 self.sendreqCnt = self.sendreqCnt + 1
                 hasSqliVuln = self.checkIsErrorBaseSqli(res)
                 if hasSqliVuln:
-                    self.saveScanResult(VulnType['sqli-error'])
+                    vulnid = self.saveScanResult(VulnType['sqli-error'], key)
                     self.changeScanStatus()
+                    send2slack(SqliVulnAlertTemplate.format(type='errorbased',vulnid=vulnid, scanid=self.scanid, url=self.url, method=self.method, paramname=key, detailUrl="http://webscan.donot.me?apikey=key&vulnid="+str(vulnid)))
                     return 0
         else:
             ScanLogger.warning('Can not handle this request\'s method: %s' % self.method)
@@ -138,16 +141,19 @@ class SqliScanBase(object):
             session.commit()
 
 
-    def saveScanResult(self, vulntype):
+    def saveScanResult(self, vulntype, paramname):
         vuln = VulnData(
             dataid = self.saveid,
             scanid = self.scanid,
             vulntype = vulntype,
+            paramname = paramname,
             status = 0
         )
         session = self.dbsession()
         session.add(vuln)
+        session.flush()
         session.commit()
+        return vuln.id
 
 
 
