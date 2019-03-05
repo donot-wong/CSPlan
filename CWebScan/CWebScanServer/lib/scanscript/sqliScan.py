@@ -69,7 +69,6 @@ class SqliScanBase(object):
                     ScanLogger.warning('SqliScanBase find errorbased sqli! scanid: %s, saveid: %s' % (self.scanid, self.saveid))
                     return 0
         elif self.method == 'POST':
-            # _postData = copy.copy(self.postData)
             for key, value in self.postData.items():
                 _postData = copy.copy(self.postData)
                 _postData[key] = value + '\''
@@ -87,10 +86,19 @@ class SqliScanBase(object):
 
     def reqSend(self, data, url, method, cookie, ua, ct, header):
         s = Session()
-        req = Request(method, url,
-            params = data,
-            headers = header
-        )
+        if method == 'GET':
+            req = Request(method, url,
+                params = data,
+                headers = header
+            )
+        elif method == 'POST':
+            req = Request(method, url,
+                data = data,
+                headers = header
+            )
+        else:
+            ScanLogger.warning('Can not handle this request\'s method: %s' % self.method)
+            return None
         prepped = s.prepare_request(req)
         try:
             resp = s.send(prepped,
@@ -106,16 +114,23 @@ class SqliScanBase(object):
     def checkIsErrorBaseSqli(self, res):
         # dr = re.compile(r'<[^>]+>',re.S)
         # dd = dr.sub('', res.text)
+        # print(res.text)
+        # if int(res.headers['content-length']) < 4332:
+        #     print(res.text)
+        if res is None:
+            return False
         for i in plainArray:
             if i in res.text:
                 ScanLogger.warning('SqliScanBase checkIsErrorBaseSqli function: find sqli base condition %s' % i)
                 return True
+        return False
 
 
     def checkIsTimeBaseSqli(self, res):
         pass
 
     def changeScanStatus(self, status = ScanTaskStatus['completed']):
+        ScanLogger.warning('SqliScanBase scantask complete, scanid: %s' % self.scanid)
         session = self.dbsession()
         scans = session.query(ScanTask).filter_by(id=self.scanid).all()
         if len(scans) == 1:
@@ -158,8 +173,8 @@ class SqliScanConsumer(ConsumerBase):
         ScanLogger.warning('SqliScanConsumer Received message # %s from %s: %s',
                     basic_deliver.delivery_tag, properties.app_id, data.netloc)
         self.acknowledge_message(basic_deliver.delivery_tag)
-        
-        sqliscanObjfeaeture = self.pool.submit(startScan, data, self.dbsession)
+        sqliscanObj = SqliScanBase(data, self.dbsession)
+        sqliscanObjfeaeture = self.pool.submit(sqliscanObj.run)
         self.scaning = self.scaning + 1
         ScanLogger.warning("SqliScanConsumer commit scantask, taskid: %s, now total scaning task: %s" % (data.scanid, self.scaning))
         sqliscanObjfeaeture.add_done_callback(self.threadcallback)

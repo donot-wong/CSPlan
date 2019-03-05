@@ -16,6 +16,7 @@ BlackParamName = ['q', '_csrf']
 
 CWebScanSetting = AttribDict()
 
+SlackHookUrl = "https://hooks.slack.com/services/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"
 
 ScanTaskVulnType = {
 	'sqli': 1,

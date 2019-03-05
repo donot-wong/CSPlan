@@ -67,7 +67,7 @@ class ParseBase(object):
 			res = self._parseFormData()
 			reqbody = {}
 			for key in res:
-				reqbody[key] = res[key]
+				reqbody[key] = res[key][0]
 				# reqbody.append(key + "=" + res[key][0])
 			self.ret.postData = reqbody
 
