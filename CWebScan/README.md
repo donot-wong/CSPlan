@@ -59,28 +59,41 @@ CMonitor->CWebServer->数据处理队列->数据清洗->扫描任务分发队列
 5. 不需要进行扫描的请求包
 
 去重策略(多级去重key策略，以不存在为首要检索条件，即每次查表我希望是不存在的，如果存在再进行下一级去重key)：
-
+去重的目的是要确定这个请求在已经获取的数据中存在 or 不存在，这是个二分类问题，因此只要我确定
 含有不可忽略参数：
 
 一级去重key：
+```
 md5(method+scheme+netloc+path)
+```
 二级去重key（目标是希望参数名不同）:
+```
 if method == 'get':
 md5(get param key list) # 剔除诸如入\_p \_t \_csrf等可忽略参数
 else method == 'post':
 md5(post parm key list) # 剔除诸如入\_p \_t \_csrf等可忽略参数
+```
 三级去重key（响应包contenttype不同）：
+```
 resp.headers
 content-type
+```
 四级去重key（响应包长度差别大于20%）
+```
 content-length 响应包长度 差别大于20%
+```
 五级去重key{未实现}:
+```
 if method == 'get':
 md5(query) # 数字->{id}
 elif method == 'post':
 md5(body)
-
+```
 剔除可忽略参数后没参数的（只有路径）：类似于/index.php/article/1/ index/article/{hashstr}
+采用的是seay之前的一种算法， 被我修改了一下
+[实用科普：爬虫技术浅析 编写爬虫应注意的点](http://www.91ri.org/11469.html)
+原算法主要是通过对url结构进行转换后hash，也就是拥有同样结构的url被认为是重复的url
+这样去重任然存在误差，因此我在使用这种方法时结合了响应包长度。当响应包长度差别在大于40%时即认为该url是非重复的。
 
 
 
