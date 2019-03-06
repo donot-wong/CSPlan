@@ -70,7 +70,7 @@ class SqliScanBase(object):
                     send2slack(SqliVulnAlertTemplate.format(type='errorbased',vulnid=vulnid, scanid=self.scanid, url=self.url, method=self.method, paramname=key, detailUrl="http://webscan.donot.me?apikey=key&vulnid="+str(vulnid)))
                     ScanLogger.warning('SqliScanBase find errorbased sqli! scanid: %s, saveid: %s' % (self.scanid, self.saveid))
                     return 0
-        elif self.method == 'POST':
+        elif self.method == 'POST' and self.postData != '':
             for key, value in self.postData.items():
                 _postData = copy.copy(self.postData)
                 _postData[key] = value + '\''
@@ -139,6 +139,7 @@ class SqliScanBase(object):
         if len(scans) == 1:
             scans[0].status = status
             session.commit()
+            session.close()
 
 
     def saveScanResult(self, vulntype, paramname):
@@ -153,6 +154,7 @@ class SqliScanBase(object):
         session.add(vuln)
         session.flush()
         session.commit()
+        session.close()
         return vuln.id
 
 
@@ -197,7 +199,7 @@ class SqliScanConsumer(ConsumerBase):
 
 
 def SqliScanMain():
-    engine = create_engine('mysql+pymysql://root:123456@127.0.0.1:3306/test')
+    engine = create_engine('mysql+pymysql://root:123456@127.0.0.1:3306/test',pool_size=20)
     DB_Session = sessionmaker(bind=engine)
     example = SqliScanConsumer('amqp://guest:guest@localhost:5672/%2F', 'sqliscan', 'sqliscan.key', DB_Session)
     try:

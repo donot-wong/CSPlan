@@ -68,7 +68,7 @@ class data_clean_key(BaseModel):
 	keytype = Column(Integer)
 	key1 = Column(String(32))
 	key2 = Column(String(32))
-	key3 = Column(String(32))
+	key3 = Column(String(100))
 	key4 = Column(Integer)
 	key5 = Column(String(32))
 

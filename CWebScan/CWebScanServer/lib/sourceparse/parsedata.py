@@ -211,6 +211,7 @@ class ParseConsumer(ConsumerBase):
             save2data_clean_key.dataid = save2data_clean.id
             session.add(save2data_clean_key)
             session.commit()
+            session.close()
         except Exception as e:
             raise e
         return res
@@ -252,6 +253,7 @@ class ParseConsumer(ConsumerBase):
         session = self.dbsession()
         if keytype == 1:
             searchByKey1Res = session.query(data_clean_key).filter_by(key1=key1).all()
+            session.close()
             if len(searchByKey1Res) == 0:
                 return True
             else:
@@ -260,11 +262,14 @@ class ParseConsumer(ConsumerBase):
                         if i.key3 == key3:
                             if i.key4 == 0 and key4 == 0:
                                 return False
-                            ration = abs(i.key4 - key4) / i.key4
-                            if ration > 0.2:
+                            elif i.key4 == 0 and key4 != 0:
                                 continue
                             else:
-                                return False
+                                ration = abs(i.key4 - key4) / i.key4
+                                if ration > 0.2:
+                                    continue
+                                else:
+                                    return False
                         else:
                             continue
                     else:
@@ -273,6 +278,7 @@ class ParseConsumer(ConsumerBase):
         elif keytype == 2:
             urlkey = key1
             searchByKey1Res = session.query(data_clean_key).filter_by(key1=key1).all()
+            session.close()
             if len(searchByKey1Res) == 0:
                 return True
             else:
@@ -280,6 +286,8 @@ class ParseConsumer(ConsumerBase):
                     if i.key3 == key3:
                         if i.key4 == 0 and key4 == 0:
                             return False
+                        elif i.key4 == 0 and key4 != 0:
+                            continue
                         else:
                             ration = abs(i.key4 - key4) / i.key4
                             if ration > 0.4:
@@ -292,7 +300,7 @@ class ParseConsumer(ConsumerBase):
             return True
 
 def parseMain(q):
-    engine = create_engine('mysql+pymysql://root:123456@127.0.0.1:3306/test')
+    engine = create_engine('mysql+pymysql://root:123456@127.0.0.1:3306/test', pool_size=20)
     DB_Session = sessionmaker(bind=engine)
     example = ParseConsumer('amqp://guest:guest@localhost:5672/%2F', 'parsesrcdata', 'parsesrcdata.source', q, DB_Session)
     try:
