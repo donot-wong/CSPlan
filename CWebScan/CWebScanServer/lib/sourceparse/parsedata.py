@@ -115,6 +115,11 @@ class ParseConsumer(ConsumerBase):
         if chromeType in ['empty','error']:
             res.postData = ''
 
+        if self.checkSourceData(res):
+            pass
+        else:
+            return None
+
         # 清洗后数据存储
         # ...
 
@@ -133,6 +138,7 @@ class ParseConsumer(ConsumerBase):
             statuscode = res.statuscode
         )
         ScanLogger.warning('ParseConsumer handle message # %s start...', res.saveid)
+
         try:
             session = self.dbsession()
             session.add(save2data_raw)
@@ -141,6 +147,15 @@ class ParseConsumer(ConsumerBase):
         except Exception as e:
             raise e
         return res
+
+    def checkSourceData(self, res):
+        '''
+        检测这个包是不是需要被存储并下发扫描
+        return: True/False
+        '''
+        session = self.dbsession()
+        session.query(data_clean).filter_by()
+        return False
 
 def parseMain(q):
     engine = create_engine('mysql+pymysql://root:123456@127.0.0.1:3306/test')
