@@ -60,11 +60,23 @@ class data_clean(BaseModel):
 	statuscode = Column(Integer)
 	time = Column(DateTime, default=datetime.datetime.now)
 
+class data_clean_key(BaseModel):
+	"""去重key"""
+	__tablename__ = 'data_clean_key'
+	id = Column(Integer, primary_key=True)
+	dataid = Column(Integer)
+	keytype = Column(Integer)
+	key1 = Column(String(32))
+	key2 = Column(String(32))
+	key3 = Column(String(32))
+	key4 = Column(Integer)
+	key5 = Column(String(32))
+
 
 class ScanTask(BaseModel):
 	"""扫描任务"""
 	__tablename__ = 'scantask'
-	id = Column(Integer, primary_key=True)
+	id = Column(Integer, primary_key=True)   
 	dataid = Column(String(100)) # unique
 	scantype = Column(Integer)
 	time = Column(DateTime, default=datetime.datetime.now)

@@ -12,10 +12,9 @@ CONTENT_TYPE = ['application/x-www-form-urlencoded', 'multipart/form-data', 'app
 ScanLogger = logging.getLogger('CWebScanServer')
 
 # 黑名单参数名
-BlackParamName = ['q', '_csrf']
+BlackParamName = ['_t', '_csrf', 't']
 
 CWebScanSetting = AttribDict()
-
 
 
 ScanTaskVulnType = {
