@@ -89,7 +89,7 @@ md5(query) # 数字->{id}
 elif method == 'post':
 md5(body)
 ```
-剔除可忽略参数后没参数的（只有路径）：类似于/index.php/article/1/ index/article/{hashstr}
+剔除可忽略参数后没参数的（只有路径）：  类似于/index.php/article/1/ index/article/{hashstr}
 采用的是seay之前的一种算法， 被我修改了一下
 [实用科普：爬虫技术浅析 编写爬虫应注意的点](http://www.91ri.org/11469.html)
 原算法主要是通过对url结构进行转换后hash，也就是拥有同样结构的url被认为是重复的url
