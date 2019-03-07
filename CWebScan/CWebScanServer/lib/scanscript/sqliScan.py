@@ -74,6 +74,8 @@ class SqliScanBase(object):
                             continue
                 else:
                     continue
+        else:
+            pass
 
         self.changeScanStatus()
 
@@ -88,7 +90,7 @@ class SqliScanBase(object):
         self.SrcRequestHeaders = self.SrcRequest.reqHeaders
         self.saveid = self.SrcRequest.saveid
         self.scanid = self.SrcRequest.scanid
-        ScanLogger.warning('init function called')
+        # ScanLogger.warning('init function called')
 
     def errorbased(self, loc, key):
         if loc == 'params' and self.method == 'GET':
@@ -114,7 +116,26 @@ class SqliScanBase(object):
         '''
         基于时间延迟注入扫描
         '''
-        return False
+        payloads = [
+            '\' and {sleep} --+-',
+            '" and {sleep} --+-', 
+            "') and {sleep} --+-", 
+            "')) and {sleep} --+-", 
+            '") and {sleep} --+-',
+            '\' && {sleep} %23',
+        ]
+
+        if loc == 'params' and self.method == 'GET':
+            _getData = copy.copy(self.getData)
+            _getData
+            return False
+        elif loc == 'data' and self.method == 'POST':
+            return False
+        elif loc == 'params' and self.method == 'POST':
+            return False
+        else:
+            ScanLogger.warning('Can not handle this request\'s method: %s' % self.method)
+            return False
 
     def reqSend(self, loc, data, url, method, cookie, ua, ct, header):
         s = Session()

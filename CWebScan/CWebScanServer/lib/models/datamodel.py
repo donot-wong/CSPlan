@@ -4,7 +4,7 @@
 # @Author  : donot (donot@donot.me)
 # @Link    : https://blog.donot.me
 
-from sqlalchemy import Column
+from sqlalchemy import Column, func
 from sqlalchemy.types import CHAR, Integer, String, DateTime, Text
 from sqlalchemy.ext.declarative import declarative_base
 import datetime
@@ -79,8 +79,11 @@ class ScanTask(BaseModel):
 	id = Column(Integer, primary_key=True)   
 	dataid = Column(String(100)) # unique
 	scantype = Column(Integer)
-	time = Column(DateTime, default=datetime.datetime.now)
+	# createtime = Column(DateTime, default=datetime.datetime.now)
+	# updatetime = Column(DateTime)
 	status = Column(Integer) # 任务状态
+	createtime = Column(DateTime, server_default=func.now(), comment='创建时间')
+	updatetime = Column(DateTime, server_default=func.now(), onupdate=func.now(), comment='修改时间')
 
 
 class VulnData(BaseModel):

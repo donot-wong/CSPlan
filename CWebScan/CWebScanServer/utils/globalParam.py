@@ -6,16 +6,16 @@
 
 from .DataStructure import AttribDict
 import logging
+import random
 
 CONTENT_TYPE = ['application/x-www-form-urlencoded', 'multipart/form-data', 'application/json', 'text/xml']
 
 ScanLogger = logging.getLogger('CWebScanServer')
 
 # 黑名单参数名
-BlackParamName = ['_t', '_csrf', 't']
+BlackParamName = ['_t', '_csrf', 't', '_p', 'csrf', 'csrftoken', 'nonce', 'timestamp']
 
 CWebScanSetting = AttribDict()
-
 
 ScanTaskVulnType = {
 	'sqli': 1,
