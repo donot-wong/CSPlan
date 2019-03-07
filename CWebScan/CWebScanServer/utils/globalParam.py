@@ -36,6 +36,10 @@ VulnType = {
 	'rce': 4
 }
 
-SqliVulnAlertTemplate = "SQL Inject({type}) Vuln Find! VulnId: {vulnid}, ScanId: {scanid}, Url: {url}, Method: {method}, Paramname: {paramname}, details please click url: {detailUrl}"
-RceVulnAlertTemplate = "Rce{type} Vuln Find! ScanId: {scanid}, Url: {url}, Method: {method}, Paramname: {paramname}, details please click url: {detailUrl}"
-ScanTaskErrorAlertTemplate = "ScanTask Error Alert! ScanId: {scanid}, ScanType: {scantype}, StartTime: {starttime}, ErrorInfo: {errorinfo}, MSG: {msg}"
+AlertTemplateDict = {
+	"0": "ScanTask Error Alert! ScanId: {scanid}, ScanType: {scantype}, StartTime: {starttime}, ErrorInfo: {errorinfo}, MSG: {msg}",
+	"1": "SQL Inject(errorbased) Vuln Find! VulnId: {vulnid}, ScanId: {scanid}, Url: {url}, Method: {method}, Paramname: {paramname}, details please click url: {detailUrl}",
+	"2": "SQL Inject(booleanbased) Vuln Find! VulnId: {vulnid}, ScanId: {scanid}, Url: {url}, Method: {method}, Paramname: {paramname}, details please click url: {detailUrl}",
+	"3": "SQL Inject(timebased) Vuln Find! VulnId: {vulnid}, ScanId: {scanid}, Url: {url}, Method: {method}, Paramname: {paramname}, details please click url: {detailUrl}",
+	"4": "Rce Vuln Find! ScanId: {scanid}, Url: {url}, Method: {method}, Paramname: {paramname}, details please click url: {detailUrl}"
+}

@@ -19,7 +19,7 @@ from sqlalchemy.orm import sessionmaker
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__)))))
 from lib.rabbitqueue.consumerBase import ConsumerBase
-from utils.globalParam import ScanLogger,  BlackParamName, ScanTaskStatus, VulnType, SqliVulnAlertTemplate
+from utils.globalParam import ScanLogger,  BlackParamName, ScanTaskStatus, VulnType, AlertTemplateDict
 from utils.DataStructure import RequestData
 from lib.scanscript.sqliscan.errorbased import plainArray, regexArray
 from lib.models.datamodel import ScanTask, VulnData
@@ -41,7 +41,41 @@ class SqliScanBase(object):
         '''
         # ScanLogger.warning('run called SqliScanBase')
         self.init()
-        self.errorbased()
+
+        if self.method == 'GET':
+            for key, value in self.getData.items():
+                if key not in BlackParamName:
+                    hasErrorSqliVuln = self.errorbased('params', key)
+                    if hasErrorSqliVuln:
+                        self.saveScanResult(VulnType['sqli-error'], key)
+                        break
+                    else:
+                        hasTimeSqliVuln = self.timebased('params', key)
+                        if hasTimeSqliVuln:
+                            self.saveScanResult(VulnType['sqli-time']. key)
+                            break
+                        else:
+                            continue
+                else:
+                    continue
+        elif self.method == 'POST' and self.postData != '':
+            for key, value in self.postData.items():
+                if key not in BlackParamName:
+                    hasErrorSqliVuln = self.errorbased('data', key)
+                    if hasErrorSqliVuln:
+                        self.saveScanResult(VulnType['sqli-error'], key)
+                        break
+                    else:
+                        hasTimeSqliVuln = self.timebased('data', key)
+                        if hasTimeSqliVuln:
+                            self.saveScanResult(VulnType['sqli-time'], key)
+                            break
+                        else:
+                            continue
+                else:
+                    continue
+
+        self.changeScanStatus()
 
     def init(self):
         self.ct = self.SrcRequest.ct
@@ -56,45 +90,40 @@ class SqliScanBase(object):
         self.scanid = self.SrcRequest.scanid
         ScanLogger.warning('init function called')
 
-    def errorbased(self):
-        if self.method == 'GET':
-            for key, value in self.getData.items():
-                _getData = copy.copy(self.getData)
-                _getData[key] = value + '\''
-                res = self.reqSend(_getData, self.url, self.method, self.cookie, self.ua, self.ct, self.SrcRequestHeaders)
-                self.sendreqCnt = self.sendreqCnt + 1
-                hasSqliVuln = self.checkIsErrorBaseSqli(res)
-                if hasSqliVuln:
-                    vulnid = self.saveScanResult(VulnType['sqli-error'], key)
-                    self.changeScanStatus()
-                    send2slack(SqliVulnAlertTemplate.format(type='errorbased',vulnid=vulnid, scanid=self.scanid, url=self.url, method=self.method, paramname=key, detailUrl="http://webscan.donot.me?apikey=key&vulnid="+str(vulnid)))
-                    ScanLogger.warning('SqliScanBase find errorbased sqli! scanid: %s, saveid: %s' % (self.scanid, self.saveid))
-                    return 0
-        elif self.method == 'POST' and self.postData != '':
-            for key, value in self.postData.items():
-                _postData = copy.copy(self.postData)
-                _postData[key] = value + '\''
-                res = self.reqSend(_postData, self.url, self.method, self.cookie, self.ua, self.ct, self.SrcRequestHeaders)
-                self.sendreqCnt = self.sendreqCnt + 1
-                hasSqliVuln = self.checkIsErrorBaseSqli(res)
-                if hasSqliVuln:
-                    vulnid = self.saveScanResult(VulnType['sqli-error'], key)
-                    self.changeScanStatus()
-                    send2slack(SqliVulnAlertTemplate.format(type='errorbased',vulnid=vulnid, scanid=self.scanid, url=self.url, method=self.method, paramname=key, detailUrl="http://webscan.donot.me?apikey=key&vulnid="+str(vulnid)))
-                    return 0
+    def errorbased(self, loc, key):
+        if loc == 'params' and self.method == 'GET':
+            _getData = copy.copy(self.getData)
+            _getData[key] = _getData[key] + '\'"'
+            res = self.reqSend(loc, _getData, self.url, self.method, self.cookie, self.ua, self.ct, self.SrcRequestHeaders)
+            self.sendreqCnt += 1
+            return self.checkIsErrorBaseSqli(res)
+        elif loc == 'data' and self.method == 'POST':
+            _postData = copy.copy(self.postData)
+            _postData[key] = _postData[key] + '\'"'
+            res = self.reqSend(loc, _postData, self.url, self.method, self.cookie, self.ua, self.ct, self.SrcRequestHeaders)
+            self.sendreqCnt += 1
+            return self.checkIsErrorBaseSqli(res)
+        elif loc == 'params' and self.method == 'POST':
+            pass
+            return False
         else:
             ScanLogger.warning('Can not handle this request\'s method: %s' % self.method)
-        self.changeScanStatus()
+            return False
 
+    def timebased(self, loc, key):
+        '''
+        基于时间延迟注入扫描
+        '''
+        return False
 
-    def reqSend(self, data, url, method, cookie, ua, ct, header):
+    def reqSend(self, loc, data, url, method, cookie, ua, ct, header):
         s = Session()
-        if method == 'GET':
+        if loc == 'params' and method == 'GET':
             req = Request(method, url,
                 params = data,
                 headers = header
             )
-        elif method == 'POST':
+        elif loc == 'data' and method == 'POST':
             req = Request(method, url,
                 data = data,
                 headers = header
@@ -122,8 +151,11 @@ class SqliScanBase(object):
         #     print(res.text)
         if res is None:
             return False
+        else:
+            dr = re.compile(r'<[^>]+>',re.S)
+            dd = dr.sub('', res.text)
         for i in plainArray:
-            if i in res.text:
+            if i in dd:
                 ScanLogger.warning('SqliScanBase checkIsErrorBaseSqli function: find sqli base condition %s' % i)
                 return True
         return False
@@ -143,6 +175,7 @@ class SqliScanBase(object):
 
 
     def saveScanResult(self, vulntype, paramname):
+        session = self.dbsession()
         vuln = VulnData(
             dataid = self.saveid,
             scanid = self.scanid,
@@ -150,12 +183,17 @@ class SqliScanBase(object):
             paramname = paramname,
             status = 0
         )
-        session = self.dbsession()
         session.add(vuln)
         session.flush()
+        vulnid = vuln.id
         session.commit()
+        # session.expunge_all()
         session.close()
-        return vuln.id
+        status, res = send2slack(AlertTemplateDict[str(vulntype)].format(vulnid=vulnid, scanid=self.scanid, url=self.url, method=self.method, paramname=paramname, detailUrl="http://webscan.donot.me?apikey=key&vulnid="+str(vulnid)))
+        if status:
+            ScanLogger.warning('Slack Alert Send Successfully! vulnid: %s' % vulnid)
+        else:
+            ScanLogger.error('Slack Alert Send Failed! Msg: %s, vulnid: %s' % (res, vulnid))
 
 
 
