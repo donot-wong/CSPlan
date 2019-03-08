@@ -26,7 +26,8 @@ ScanTaskVulnType = {
 ScanTaskStatus = {
 	'running': 0,
 	'completed': 1,
-	'error': 2
+	'error': 2,
+	'repeat_check_failed': 3,
 }
 
 VulnType = {

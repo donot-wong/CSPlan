@@ -38,10 +38,26 @@ class ScanBase(object):
         self.SrcRequestHeaders = self.SrcRequest.reqHeaders
         self.saveid = self.SrcRequest.saveid
         self.scanid = self.SrcRequest.scanid
+        if 'Content-Length' in self.SrcRequestHeaders:
+            self.ctl = self.SrcRequestHeaders['Content-Length']
+        elif 'content-length' in self.SrcRequestHeaders:
+            self.ctl = self.SrcRequestHeaders['content-length']
+        else:
+            self.ctl = 0
+            self.NoLength = True
 
     def run(self):
         self.init()
-        self.repeatCheck()
+        if not self.networkCheck():
+            ScanLogger('ScanBase Network Check Failed, Please Check Network')
+            return 0
+
+        status, averageTime, averageLength = self.repeatCheck(self.ctl, self.NoLength)
+        if status:
+            pass
+        else:
+            ScanLogger(self.__class__.__name__ + ' repeatCheck Failed')
+            self.changeScanStatus(ScanTaskStatus['repeat_check_failed'])
 
     def changeScanStatus(self, status = ScanTaskStatus['completed']):
         ScanLogger.warning(self.__class__.__name__ + ' scantask complete, scanid: %s' % self.scanid)
@@ -72,11 +88,28 @@ class ScanBase(object):
         else:
             ScanLogger.error('Slack Alert Send Failed! Msg: %s, vulnid: %s' % (res, vulnid))
 
-    def repeatCheck(self, res_time, res_length):
+    def networkCheck(self):
+        '''
+        网络可用性检测
+        '''
+        try:
+            s = Session()
+            res = s.get('https://blog.donot.me/', timeout=5, allow_redirects=False)
+            if res.status_code == 200:
+                return True
+            else:
+                return False
+        except Exception as e:
+            return False
+
+
+    def repeatCheck(self, res_length, NoLength=False):
         '''
         可重放检测
         没有Conetent-Length的包不做检测，依赖Cotent-Length进行检测，没有Content-Length暂时不做扫描
         '''
+        if NoLength:
+            return True, None, None
         respTimeList = []
         respLengthList = []
         for i in range(3):
@@ -84,22 +117,44 @@ class ScanBase(object):
             if ela != 0 and headers is not None:
                 respTimeList.append(ela.total_seconds())
                 if 'Content-Length' in headers:
-                    respLengthList.append(headers['Content-Length'])
+                    respLengthList.append(int(headers['Content-Length']))
                 elif 'content-length' in headers:
-                    respLengthList.append(headers['content-length'])
+                    respLengthList.append(int(headers['content-length']))
                 else:
                     ctl = -1
             else:
                 pass
-        if len(respTimeList) == len(respLengthList) > 2:
+        if len(respTimeList) == len(respLengthList) > 1:
             averageTime = sum(respTimeList) / len(respTimeList)
             averageLength = sum(respLengthList) / len(respLengthList)
         else:
-            for i in range(2):
-                pass
+            for i in range(3):
+                ela, headers = self.reqSendForRepeatCheck()
+                if ela != 0 and headers is not None:
+                    respTimeList.append(ela.total_seconds())
+                    if 'Content-Length' in headers:
+                        respLengthList.append(int(headers['Content-Length']))
+                    elif 'content-length' in headers:
+                        respLengthList.append(int(headers['content-length']))
+                    else:
+                        ctl = -1
+                else:
+                    pass
 
+            if len(respTimeList) < 3 and len(respLengthList) < 3:
+                '''
+                可重放性检测失败
+                '''
+                return False, None, None
+            else:
+                averageTime = sum(respTimeList) / len(respTimeList)
+                averageLength = sum(respLengthList) / len(respLengthList)
 
-
+        ration = abs(averageLength - res_length) / res_length
+        if ration < 0.2:
+            return True, averageTime, averageLength
+        else:
+            return False, averageTime, averageLength
         # print(respTimeList)
         # print(respLengthList)
 
@@ -113,9 +168,10 @@ class ScanBase(object):
         )
         prepped = s.prepare_request(req)
         try:
-            resp = s.send(prepped, verify=False, timeout=20)
+            resp = s.send(prepped, verify=False, timeout=20, allow_redirects=False)
         except Exception as e:
             return 0, None
+        # print(len(resp.content.decode('utf-8')))
         return resp.elapsed, resp.headers
 
 
@@ -124,7 +180,7 @@ class ScanBase(object):
         if loc == 'params' and method == 'GET':
             req = Request(method, url,
                 params = data,
-                headers = header
+                headers = header,
             )
         elif loc == 'data' and method == 'POST':
             req = Request(method, url,
@@ -138,7 +194,8 @@ class ScanBase(object):
         try:
             resp = s.send(prepped,
                 verify=False,
-                timeout=3
+                timeout=3,
+                allow_redirects=False
             )
         except Exception as e:
             resp = None
@@ -152,6 +209,7 @@ def main():
     req.saveid = 1
     req.scanid = 2
     req.ct = ''
+    # req.url = 'http://43.247.91.228:81/vulnerabilities/sqli/?id=1&Submit=Submit'
     req.url = 'http://43.247.91.228:81/vulnerabilities/sqli/?id=1&Submit=Submit'
     req.scheme = 'http'
     req.netloc = '43.247.91.228:81'
@@ -167,6 +225,7 @@ def main():
 
 
 if __name__ == '__main__':
-    print(sum([1,2,3]))
+    # print(sum([1,2,3]))
+    main()
 
 
