@@ -12,10 +12,13 @@ from requests import Request, Session
 import time
 import copy
 from concurrent.futures import ThreadPoolExecutor
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__)))))
 from utils.globalParam import ScanLogger,  BlackParamName, ScanTaskStatus, VulnType, AlertTemplateDict
 from utils.DataStructure import RequestData
+from lib.models.datamodel import ScanTask, VulnData
 from utils.commonFunc import send2slack
 
 
@@ -202,6 +205,14 @@ class ScanBase(object):
 
         ScanLogger.warning('ScanBase reqSend function: send requests to: %s' % req.url)
         return resp
+    def dataTypeCheck(self, data):
+        try:
+            json.loads(data)
+        except Exception as e:
+            pass
+        # return JSONLikeData
+        # return XMLLikeData
+
 
 def main():
     # http://43.247.91.228:81/vulnerabilities/sqli/?id=1&Submit=Submit#

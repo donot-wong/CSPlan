@@ -52,7 +52,7 @@ class SqliScanBase(object):
                     else:
                         hasTimeSqliVuln = self.timebased('params', key)
                         if hasTimeSqliVuln:
-                            self.saveScanResult(VulnType['sqli-time']. key)
+                            self.saveScanResult(VulnType['sqli-time'], key)
                             break
                         else:
                             continue
@@ -106,7 +106,6 @@ class SqliScanBase(object):
             self.sendreqCnt += 1
             return self.checkIsErrorBaseSqli(res)
         elif loc == 'params' and self.method == 'POST':
-            pass
             return False
         else:
             ScanLogger.warning('Can not handle this request\'s method: %s' % self.method)
@@ -156,7 +155,7 @@ class SqliScanBase(object):
         try:
             resp = s.send(prepped,
                 verify=False,
-                timeout=3
+                timeout=10
             )
         except Exception as e:
             resp = None

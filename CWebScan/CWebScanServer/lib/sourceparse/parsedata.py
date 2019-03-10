@@ -193,7 +193,7 @@ class ParseConsumer(ConsumerBase):
             method = res.method,
             path = res.path,
             query = res.query,
-            body = parse.quote(str(res.postData)),
+            body = parse.quote(json.dumps(res.postData)),
             ct = res.ct,
             cookie = res.cookie,
             reqheaders = parse.quote(str(res.reqHeaders)),

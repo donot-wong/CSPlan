@@ -65,7 +65,7 @@ class ParseBase(object):
 		self.ret.chromeType = self.chormeType
 		if self.chormeType == 'formData':
 			res = self._parseFormData()
-			reqbody = {}
+			reqbody = dict()
 			for key in res:
 				reqbody[key] = res[key][0]
 				# reqbody.append(key + "=" + res[key][0])

@@ -13,9 +13,27 @@ CONTENT_TYPE = ['application/x-www-form-urlencoded', 'multipart/form-data', 'app
 ScanLogger = logging.getLogger('CWebScanServer')
 
 # 黑名单参数名
-BlackParamName = ['_t', '_csrf', 't', '_p', 'csrf', 'csrftoken', 'nonce', 'timestamp']
+BlackParamName = ['_t', '_csrf', 't', '_p', 'csrf', 'csrftoken', 'nonce', 'timestamp', 'submit','Submit']
 
 CWebScanSetting = AttribDict()
+CWebScanSetting.log_suffix = 'sqvds.cn'
+CWebScanSetting.dnslog_prefix = 'xxx'
+CWebScanSetting.weblog_prefix = 'xxx'
+CWebScanSetting.dnslog_api = "http://admin.sqvds.cn" + '/api/' + '32d6e7038e8cb3c752364c9e1e69ff33790562b7' +  '/dnslog/' + '{searchstr}'
+CWebScanSetting.weblog_api = "http://admin.sqvds.cn" + '/api/' + '32d6e7038e8cb3c752364c9e1e69ff33790562b7' +  '/weblog/' + '{searchstr}'
+
+# Regular expression for XML POST data
+XML_RECOGNITION_REGEX = r"(?s)\A\s*<[^>]+>(.+>)?\s*\Z"
+
+# Regular expression used for detecting JSON POST data
+JSON_RECOGNITION_REGEX = r'(?s)\A(\s*\[)*\s*\{.*"[^"]+"\s*:\s*("[^"]*"|\d+|true|false|null).*\}\s*(\]\s*)*\Z'
+
+# Regular expression used for detecting JSON-like POST data
+JSON_LIKE_RECOGNITION_REGEX = r"(?s)\A(\s*\[)*\s*\{.*'[^']+'\s*:\s*('[^']+'|\d+).*\}\s*(\]\s*)*\Z"
+
+# Regular expression used for detecting multipart POST data
+MULTIPART_RECOGNITION_REGEX = r"(?i)Content-Disposition:[^;]+;\s*name="
+
 
 ScanTaskVulnType = {
 	'sqli': 1,
@@ -28,13 +46,16 @@ ScanTaskStatus = {
 	'completed': 1,
 	'error': 2,
 	'repeat_check_failed': 3,
+	'rce_dnslog_send_finish_check_no': 4,
 }
 
 VulnType = {
 	'sqli-error': 1,
 	'sqli-boolean': 2,
 	'sqli-time': 3,
-	'rce': 4
+	'rce-dnslog': 4,
+	'rce-resp': 5,
+	'rce-weblog': 6
 }
 
 AlertTemplateDict = {
