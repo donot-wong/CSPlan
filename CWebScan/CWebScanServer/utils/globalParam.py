@@ -34,6 +34,14 @@ JSON_LIKE_RECOGNITION_REGEX = r"(?s)\A(\s*\[)*\s*\{.*'[^']+'\s*:\s*('[^']+'|\d+)
 # Regular expression used for detecting multipart POST data
 MULTIPART_RECOGNITION_REGEX = r"(?i)Content-Disposition:[^;]+;\s*name="
 
+CalcAverageTimeLimitCnt = 13 # 计算请求平均时间最小发包量
+
+# Coefficient used for a time-based query delay checking (must be >= 7)
+TIME_STDEV_COEFF = 7
+
+# Minimum response time that can be even considered as delayed (not a complete requirement)
+MIN_VALID_DELAYED_RESPONSE = 0.5
+
 
 ScanTaskVulnType = {
 	'sqli': 1,

@@ -48,6 +48,7 @@ class ScanBase(object):
         else:
             self.ctl = 0
             self.NoLength = True
+        self.respTimeList = []
 
     def run(self):
         self.init()
@@ -113,12 +114,12 @@ class ScanBase(object):
         '''
         if NoLength:
             return True, None, None
-        respTimeList = []
         respLengthList = []
         for i in range(3):
             ela, headers = self.reqSendForRepeatCheck()
-            if ela != 0 and headers is not None:
-                respTimeList.append(ela.total_seconds())
+            if headers is not None:
+                self.respTimeList.append(ela)
+                self.timesRcordList.append(ela)
                 if 'Content-Length' in headers:
                     respLengthList.append(int(headers['Content-Length']))
                 elif 'content-length' in headers:
@@ -127,14 +128,13 @@ class ScanBase(object):
                     ctl = -1
             else:
                 pass
-        if len(respTimeList) == len(respLengthList) > 1:
-            averageTime = sum(respTimeList) / len(respTimeList)
+        if len(respLengthList) > 1:
             averageLength = sum(respLengthList) / len(respLengthList)
         else:
             for i in range(3):
                 ela, headers = self.reqSendForRepeatCheck()
-                if ela != 0 and headers is not None:
-                    respTimeList.append(ela.total_seconds())
+                if headers is not None:
+                    self.respTimeList.append(ela)
                     if 'Content-Length' in headers:
                         respLengthList.append(int(headers['Content-Length']))
                     elif 'content-length' in headers:
@@ -144,21 +144,19 @@ class ScanBase(object):
                 else:
                     pass
 
-            if len(respTimeList) < 3 and len(respLengthList) < 3:
+            if len(respLengthList) < 3:
                 '''
                 可重放性检测失败
                 '''
                 return False, None, None
             else:
-                averageTime = sum(respTimeList) / len(respTimeList)
                 averageLength = sum(respLengthList) / len(respLengthList)
 
         ration = abs(averageLength - res_length) / res_length
         if ration < 0.2:
-            return True, averageTime, averageLength
+            return True, averageLength
         else:
-            return False, averageTime, averageLength
-        # print(respTimeList)
+            return False, averageLength
         # print(respLengthList)
 
 
@@ -175,7 +173,8 @@ class ScanBase(object):
         except Exception as e:
             return 0, None
         # print(len(resp.content.decode('utf-8')))
-        return resp.elapsed, resp.headers
+        # https://www.cnblogs.com/yoyoketang/p/8035428.html
+        return resp.elapsed.total_seconds(), resp.headers
 
 
     def reqSend(self, loc, data, url, method, cookie, ua, ct, header):
@@ -197,7 +196,7 @@ class ScanBase(object):
         try:
             resp = s.send(prepped,
                 verify=False,
-                timeout=3,
+                timeout=15,
                 allow_redirects=False
             )
         except Exception as e:
@@ -205,6 +204,7 @@ class ScanBase(object):
 
         ScanLogger.warning('ScanBase reqSend function: send requests to: %s' % req.url)
         return resp
+
     def dataTypeCheck(self, data):
         try:
             json.loads(data)

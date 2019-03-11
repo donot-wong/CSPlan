@@ -19,22 +19,24 @@ from sqlalchemy.orm import sessionmaker
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__)))))
 from lib.rabbitqueue.consumerBase import ConsumerBase
-from utils.globalParam import ScanLogger,  BlackParamName, ScanTaskStatus, VulnType, AlertTemplateDict
+from utils.globalParam import ScanLogger,  BlackParamName, ScanTaskStatus, VulnType, AlertTemplateDict, CalcAverageTimeLimitCnt
+from utils.globalParam import TIME_STDEV_COEFF, MIN_VALID_DELAYED_RESPONSE
 from utils.DataStructure import RequestData
 from lib.scanscript.sqliscan.errorbased import plainArray, regexArray
 from lib.models.datamodel import ScanTask, VulnData
 from utils.commonFunc import send2slack
+from utils.payloads import SQLiPayload_Sleep, SQLiPayload_Sleep_Normal
+from lib.scanscript.scanBase import ScanBase
 
 
-class SqliScanBase(object):
+class SqliScan(ScanBase):
     """docstring for SqliScanBase"""
     SrcRequest = None
     def __init__(self, request, dbsession):
-        self.SrcRequest = request
-        self.dbsession = dbsession
-        self.sendreqCnt = 0
+        super(SqliScan, self).__init__(request, dbsession)
         # ScanLogger.warning('__init__ called SqliScanBase')
-    
+        self.delayTimeJudgeStandard = None
+
     def run(self):
         '''
         线程中调用的函数
@@ -48,12 +50,12 @@ class SqliScanBase(object):
                     hasErrorSqliVuln = self.errorbased('params', key)
                     if hasErrorSqliVuln:
                         self.saveScanResult(VulnType['sqli-error'], key)
-                        break
+                        continue
                     else:
                         hasTimeSqliVuln = self.timebased('params', key)
                         if hasTimeSqliVuln:
                             self.saveScanResult(VulnType['sqli-time'], key)
-                            break
+                            continue
                         else:
                             continue
                 else:
@@ -64,12 +66,12 @@ class SqliScanBase(object):
                     hasErrorSqliVuln = self.errorbased('data', key)
                     if hasErrorSqliVuln:
                         self.saveScanResult(VulnType['sqli-error'], key)
-                        break
+                        continue
                     else:
                         hasTimeSqliVuln = self.timebased('data', key)
                         if hasTimeSqliVuln:
                             self.saveScanResult(VulnType['sqli-time'], key)
-                            break
+                            continue
                         else:
                             continue
                 else:
@@ -78,19 +80,6 @@ class SqliScanBase(object):
             pass
 
         self.changeScanStatus()
-
-    def init(self):
-        self.ct = self.SrcRequest.ct
-        self.url = self.SrcRequest.scheme + '://' + self.SrcRequest.netloc + self.SrcRequest.path
-        self.cookie = self.SrcRequest.cookie
-        self.ua = self.SrcRequest.reqHeaders['User-Agent']
-        self.getData = self.SrcRequest.getData
-        self.postData = self.SrcRequest.postData
-        self.method = self.SrcRequest.method
-        self.SrcRequestHeaders = self.SrcRequest.reqHeaders
-        self.saveid = self.SrcRequest.saveid
-        self.scanid = self.SrcRequest.scanid
-        # ScanLogger.warning('init function called')
 
     def errorbased(self, loc, key):
         if loc == 'params' and self.method == 'GET':
@@ -116,44 +105,111 @@ class SqliScanBase(object):
         基于时间延迟注入扫描
         '''
 
+        if self.delayMinTimeCalc():
+            # print('delayTimeJudgeStandard: %s' % self.delayTimeJudgeStandard)
+            pass
+        else:
+            return False
         if loc == 'params' and self.method == 'GET':
-            _getData = copy.copy(self.getData)
-            _getData
-            return False
+            for payload_idx in range(len(SQLiPayload_Sleep)):
+                _getData = copy.copy(self.getData)
+                _getData[key] = _getData[key] + SQLiPayload_Sleep[payload_idx].format(sleep='sleep(3)')
+                # print(_getData)
+                res = self.reqSend(loc,_getData,self.url,self.method,self.cookie,self.ua,self.ct,self.SrcRequestHeaders)
+                if res is None:
+                    continue
+                if res.elapsed.total_seconds() >= max(MIN_VALID_DELAYED_RESPONSE, self.delayTimeJudgeStandard):
+                    # print('Delay Occur: resptime: %s' % res.elapsed.total_seconds())
+                    if self.twiceCheckForTimeBased(loc, key, payload_idx, res.elapsed):
+                        # print('twiceCheckForTimeBased Successfully!')
+                        return True
+                    else:
+                        # print('twiceCheckForTimeBased Failed')
+                        continue
         elif loc == 'data' and self.method == 'POST':
-            return False
+            for payload_idx in range(len(SQLiPayload_Sleep)):
+                _postData = copy.copy(self.postData)
+                _postData[key] = _postData[key] + SQLiPayload_Sleep[payload_idx].format(sleep='sleep(3)')
+                res = self.reqSend(loc,_postData,self.url,self.method, self.cookie, self.ua, self.ct, self.SrcRequestHeaders)
+                if  res is None:
+                    continue
+                if res.elapsed.total_seconds() > max(MIN_VALID_DELAYED_RESPONSE, self.delayTimeJudgeStandard):
+                    if self.twiceCheckForTimeBased(loc, key, payload_idx, res.elapsed):
+                        return True
+                    else:
+                        continue
         elif loc == 'params' and self.method == 'POST':
             return False
         else:
             ScanLogger.warning('Can not handle this request\'s method: %s' % self.method)
             return False
 
-    def reqSend(self, loc, data, url, method, cookie, ua, ct, header):
-        s = Session()
-        if loc == 'params' and method == 'GET':
-            req = Request(method, url,
-                params = data,
-                headers = header
-            )
-        elif loc == 'data' and method == 'POST':
-            req = Request(method, url,
-                data = data,
-                headers = header
-            )
+    def twiceCheckForTimeBased(self, loc, key, payload_idx, onceela):
+        ela, _ = self.reqSendForRepeatCheck()
+        if ela >= max(MIN_VALID_DELAYED_RESPONSE, self.delayTimeJudgeStandard):
+            # print('twiceCheckForTimeBased Failed, els: %s' % ela)
+            return False
         else:
-            ScanLogger.warning('Can not handle this request\'s method: %s' % self.method)
-            return None
-        prepped = s.prepare_request(req)
-        try:
-            resp = s.send(prepped,
-                verify=False,
-                timeout=10
-            )
-        except Exception as e:
-            resp = None
+            if loc == 'params' and self.method == 'GET':
+                _getData = copy.copy(self.getData)
+                _getData[key] = _getData[key] + SQLiPayload_Sleep_Normal[payload_idx]
+                # print('twiceCheckForTimeBased Normal Payload: ' + str(_getData))
+                res = self.reqSend(loc, _getData, self.url, self.method, self.cookie, self.ua, self.ct, self.SrcRequestHeaders)
+                if res.elapsed.total_seconds() < max(MIN_VALID_DELAYED_RESPONSE, self.delayTimeJudgeStandard):
+                    _getData = copy.copy(self.getData)
+                    _getData[key] = _getData[key] + SQLiPayload_Sleep[payload_idx].format(sleep='sleep(3)')
+                    # print('twiceCheckForTimeBased Sleep Payload: %s' % str(_getData))
+                    res = self.reqSend(loc, _getData, self.url, self.method, self.cookie, self.ua, self.ct, self.SrcRequestHeaders)
+                    if res.elapsed.total_seconds() >= max(MIN_VALID_DELAYED_RESPONSE, self.delayTimeJudgeStandard):
+                        return True
+                    else:
+                        # print('twiceCheckForTimeBased Sleep Payload checkFailed: ela: %s' % res.elapsed.total_seconds())
+                        return False
+                else:
+                    # print('twiceCheckForTimeBased Normal Payload checkFailed: ela: %s' % res.elapsed.total_seconds())
+                    return False
+            elif loc == 'data' and self.method == 'POST':
+                _postData = copy.copy(self.postData)
+                _postData[key] = _postData[key] + SQLiPayload_Sleep_Normal[payload_idx]
+                print('twiceCheckForTimeBased Normal Payload: ' + str(_postData))
+                res = self.reqSend(loc, _postData, self.url, self.method, self.cookie, self.ua, self.ct, self.SrcRequestHeaders)
+                if res.elapsed.total_seconds() < max(MIN_VALID_DELAYED_RESPONSE, self.delayTimeJudgeStandard):
+                    _postData = copy.copy(self.postData)
+                    _postData[key] = _postData[key] + SQLiPayload_Sleep[payload_idx].format(sleep='sleep(3)')
+                    print('twiceCheckForTimeBased Sleep Payload: %s' % str(_postData))
+                    res = self.reqSend(loc, _postData, self.url,self.method, self.cookie, self.ua, self.ct, self.SrcRequestHeaders)
+                    if res.elapsed.total_seconds() >= max(MIN_VALID_DELAYED_RESPONSE, self.delayTimeJudgeStandard):
+                        return True
+                    else:
+                        print('twiceCheckForTimeBased Sleep Payload checkFailed: ela: %s' % res.elapsed.total_seconds())
+                        return False
+                else:
+                    print('twiceCheckForTimeBased Normal Payload checkFailed: ela: %s' % res.elapsed.total_seconds())
+                    return False
+            elif loc == 'params' and self.method == 'POST':
+                return False
+            else:
+                return False
 
-        ScanLogger.warning('SqliScanBase reqSend function: send requests to: %s' % req.url)
-        return resp
+    def delayMinTimeCalc(self):
+        cnt = 0
+        while len(self.respTimeList) < CalcAverageTimeLimitCnt:
+            ela, headers = self.reqSendForRepeatCheck()
+            cnt += 1
+            if ela != 0 and headers is not None:
+                self.respTimeList.append(ela)
+            if cnt > 20:
+                return False
+
+        min_resp_time = min(self.respTimeList)
+        average_resp_time = sum(self.respTimeList) / len(self.respTimeList)
+        _ = 0
+        for i in self.respTimeList:
+            _ += (i - average_resp_time)**2
+        deviation = (_ / (len(self.respTimeList) - 1)) ** 0.5
+        self.delayTimeJudgeStandard = average_resp_time + TIME_STDEV_COEFF * deviation
+        return True
+
 
     def checkIsErrorBaseSqli(self, res):
         # dr = re.compile(r'<[^>]+>',re.S)
@@ -176,43 +232,6 @@ class SqliScanBase(object):
     def checkIsTimeBaseSqli(self, res):
         pass
 
-    def changeScanStatus(self, status = ScanTaskStatus['completed']):
-        ScanLogger.warning('SqliScanBase scantask complete, scanid: %s' % self.scanid)
-        session = self.dbsession()
-        scans = session.query(ScanTask).filter_by(id=self.scanid).all()
-        if len(scans) == 1:
-            scans[0].status = status
-            session.commit()
-            session.close()
-
-
-    def saveScanResult(self, vulntype, paramname):
-        session = self.dbsession()
-        vuln = VulnData(
-            dataid = self.saveid,
-            scanid = self.scanid,
-            vulntype = vulntype,
-            paramname = paramname,
-            status = 0
-        )
-        session.add(vuln)
-        session.flush()
-        vulnid = vuln.id
-        session.commit()
-        # session.expunge_all()
-        session.close()
-        status, res = send2slack(AlertTemplateDict[str(vulntype)].format(vulnid=vulnid, scanid=self.scanid, url=self.url, method=self.method, paramname=paramname, detailUrl="http://webscan.donot.me?apikey=key&vulnid="+str(vulnid)))
-        if status:
-            ScanLogger.warning('Slack Alert Send Successfully! vulnid: %s' % vulnid)
-        else:
-            ScanLogger.error('Slack Alert Send Failed! Msg: %s, vulnid: %s' % (res, vulnid))
-
-
-
-def startScan(data, dbsession):
-    sqliscanObj = SqliScanBase(data, dbsession)
-    sqliscanObj.run()
-
 
 class SqliScanConsumer(ConsumerBase):
     def __init__(self, amqp_url, queue_name, routing_key, dbsession):
@@ -231,7 +250,7 @@ class SqliScanConsumer(ConsumerBase):
         ScanLogger.warning('SqliScanConsumer Received message # %s from %s: %s',
                     basic_deliver.delivery_tag, properties.app_id, data.netloc)
         self.acknowledge_message(basic_deliver.delivery_tag)
-        sqliscanObj = SqliScanBase(data, self.dbsession)
+        sqliscanObj = SqliScan(data, self.dbsession)
         sqliscanObjfeaeture = self.pool.submit(sqliscanObj.run)
         self.scaning = self.scaning + 1
         ScanLogger.warning("SqliScanConsumer commit scantask, taskid: %s, now total scaning task: %s" % (data.scanid, self.scaning))
@@ -273,7 +292,7 @@ def main():
     req.getData = {'id': '1', 'Submit': 'Submit'}
     req.postData = ''
     req.reqHeaders = {'Cookie': 'PHPSESSID=vophvn0qp2am6m5h22l1tiev56; security=low', 'Accept-Language': 'zh-CN,zh;q=0.9', 'Accept-Encoding': 'gzip, deflate', 'Referer': 'http://43.247.91.228:81/vulnerabilities/sqli/', 'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8', 'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/72.0.3626.119 Safari/537.36', 'Upgrade-Insecure-Requests': '1'}
-    sqliscanObj = SqliScanBase(req, 'a')
+    sqliscanObj = SqliScan(req, 'a')
     sqliscanObj.run()
 
 

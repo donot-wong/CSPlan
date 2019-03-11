@@ -104,7 +104,7 @@ class RceScan(ScanBase):
             for payload in RCEPayload_DNSLOG:
                 _postData = copy.copy(self.postData)
                 _postData[key] = _postData[key] + payload.format(Separator='${IFS}', randStr=payload_randstr, DNSLogDomain=CWebScanSetting.dnslog_prefix + '.' + CWebScanSetting.log_suffix)
-                print(_postData)
+                # print(_postData)
                 res = self.reqSend(loc, _postData, self.url, self.method, self.cookie, self.ua, self.ct, self.SrcRequestHeaders)
         elif loc == 'params' and self.method == 'POST':
             return False 
