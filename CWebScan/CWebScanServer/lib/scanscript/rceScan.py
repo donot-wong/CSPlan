@@ -67,7 +67,7 @@ class RceScan(ScanBase):
         else:
             pass
 
-        self.changeScanStatus()
+        self.changeScanStatus(ScanTaskStatus['rce_dnslog_send_finish_check_no'])
 
     def responsebased(self, loc, key):
         return False

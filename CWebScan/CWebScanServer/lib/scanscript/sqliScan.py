@@ -115,14 +115,6 @@ class SqliScanBase(object):
         '''
         基于时间延迟注入扫描
         '''
-        payloads = [
-            '\' and {sleep} --+-',
-            '" and {sleep} --+-', 
-            "') and {sleep} --+-", 
-            "')) and {sleep} --+-", 
-            '") and {sleep} --+-',
-            '\' && {sleep} %23',
-        ]
 
         if loc == 'params' and self.method == 'GET':
             _getData = copy.copy(self.getData)

