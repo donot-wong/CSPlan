@@ -137,6 +137,15 @@ scantask.status:
 [https://github.com/donot-wong/dnslog](https://github.com/donot-wong/dnslog)
 
 
+### 20190311汇总
+截止目前，整个系统已经比较稳固，报错注入、时间盲注、dnslog RCE扫描已支持，下一阶段需要完成工作如下：
+- [ ] 参数解析，对于json格式、xml格式、multi-part格式参数进行处理 参数格式识别
+- [ ] referer/cookie等参数扫描支持
+- [ ] ssrf扫描、文件读取扫描、文件上传扫描 xxe扫描
+- [ ] 端口扫描 服务判断 目录扫描 泄露文件扫描 备份文件扫描 弱口令扫描
+- [ ] 已知漏洞扫描
+
+
 ### 参考
 sqlmap
 awvs

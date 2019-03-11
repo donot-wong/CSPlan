@@ -124,18 +124,21 @@ class RceScan(ScanBase):
         '''
         通过api检查是否有dnslog记录，所有的dnslog请求全部发出后再进行查询，只要查询到即认为有漏洞，未查到暂时标注为无漏洞
         '''
-        s = requests.get(CWebScanSetting.dnslog_api.format(searchstr=payload_randstr))
-        if s.status_code == 200:
-            data = json.loads(s.text)
-            if data['status'] == 1:
-                cnt = data['total']
-                if cnt > 0:
-                    return True
-                elif cnt <= 0:
+        try:
+            s = requests.get(CWebScanSetting.dnslog_api.format(searchstr=payload_randstr))
+            if s.status_code == 200:
+                data = json.loads(s.text)
+                if data['status'] == 1:
+                    cnt = data['total']
+                    if cnt > 0:
+                        return True
+                    elif cnt <= 0:
+                        return False
+                else:
                     return False
             else:
                 return False
-        else:
+        except Exception as e:
             return False
 
 

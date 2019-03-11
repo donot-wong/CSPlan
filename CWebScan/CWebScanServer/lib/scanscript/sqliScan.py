@@ -82,6 +82,9 @@ class SqliScan(ScanBase):
         self.changeScanStatus()
 
     def errorbased(self, loc, key):
+        '''
+        基于报错的注入扫描
+        '''
         if loc == 'params' and self.method == 'GET':
             _getData = copy.copy(self.getData)
             _getData[key] = _getData[key] + '\'"'
@@ -145,6 +148,9 @@ class SqliScan(ScanBase):
             return False
 
     def twiceCheckForTimeBased(self, loc, key, payload_idx, onceela):
+        '''
+        时间盲注一次检出后二次确认
+        '''
         ela, _ = self.reqSendForRepeatCheck()
         if ela >= max(MIN_VALID_DELAYED_RESPONSE, self.delayTimeJudgeStandard):
             # print('twiceCheckForTimeBased Failed, els: %s' % ela)
@@ -192,6 +198,9 @@ class SqliScan(ScanBase):
                 return False
 
     def delayMinTimeCalc(self):
+        '''
+        计算时间盲注时间判断基准
+        '''
         cnt = 0
         while len(self.respTimeList) < CalcAverageTimeLimitCnt:
             ela, headers = self.reqSendForRepeatCheck()
@@ -212,6 +221,9 @@ class SqliScan(ScanBase):
 
 
     def checkIsErrorBaseSqli(self, res):
+        '''
+        报错注入 报错内容检测
+        '''
         # dr = re.compile(r'<[^>]+>',re.S)
         # dd = dr.sub('', res.text)
         # print(res.text)
@@ -227,10 +239,6 @@ class SqliScan(ScanBase):
                 ScanLogger.warning('SqliScanBase checkIsErrorBaseSqli function: find sqli base condition %s' % i)
                 return True
         return False
-
-
-    def checkIsTimeBaseSqli(self, res):
-        pass
 
 
 class SqliScanConsumer(ConsumerBase):
@@ -270,11 +278,11 @@ class SqliScanConsumer(ConsumerBase):
 def SqliScanMain():
     engine = create_engine('mysql+pymysql://root:123456@127.0.0.1:3306/test',pool_size=20)
     DB_Session = sessionmaker(bind=engine)
-    example = SqliScanConsumer('amqp://guest:guest@localhost:5672/%2F', 'sqliscan', 'sqliscan.key', DB_Session)
+    sqli = SqliScanConsumer('amqp://guest:guest@localhost:5672/%2F', 'sqliscan', 'sqliscan.key', DB_Session)
     try:
-        example.run()
+        sqli.run()
     except KeyboardInterrupt:
-        example.stop()
+        sqli.stop()
 
 
 def main():
