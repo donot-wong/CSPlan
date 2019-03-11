@@ -13,7 +13,9 @@ CONTENT_TYPE = ['application/x-www-form-urlencoded', 'multipart/form-data', 'app
 ScanLogger = logging.getLogger('CWebScanServer')
 
 # 黑名单参数名
-BlackParamName = ['_t', '_csrf', 't', '_p', 'csrf', 'csrftoken', 'nonce', 'timestamp', 'submit','Submit']
+BlackParamName = ['_t', '_csrf', 't', '_p', 'csrf', 'csrftoken', 'nonce', 'timestamp', 'submit', 'Submit', '']
+IGNORE_PARAMETERS = ("__VIEWSTATE", "__VIEWSTATEENCRYPTED", "__VIEWSTATEGENERATOR", "__EVENTARGUMENT", "__EVENTTARGET", "__EVENTVALIDATION", "ASPSESSIONID", "ASP.NET_SESSIONID", "JSESSIONID", "CFID", "CFTOKEN")
+
 
 CWebScanSetting = AttribDict()
 CWebScanSetting.log_suffix = 'sqvds.cn'

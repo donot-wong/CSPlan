@@ -37,6 +37,7 @@ class data_raw(BaseModel):
 	# cookie = Column(String(2000))
 	reqheaders = Column(Text(5000))
 	resheaders = Column(Text(5000))
+	parsestatus = Column(Integer)
 	time = Column(DateTime, default=datetime.datetime.now)
 
 
@@ -85,7 +86,13 @@ class ScanTask(BaseModel):
 	createtime = Column(DateTime, server_default=func.now(), comment='创建时间')
 	updatetime = Column(DateTime, server_default=func.now(), onupdate=func.now(), comment='修改时间')
 
-
+class HostScan(BaseModel):
+	"""主机扫描"""
+	__tablename__ = 'hostscan'
+	id = Column(Integer, primary_key=True)
+	host = Column(String(100))
+	
+		
 class VulnData(BaseModel):
 	"""漏洞报告"""
 	__tablename__ = 'vulndata'

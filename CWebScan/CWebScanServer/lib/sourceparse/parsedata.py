@@ -89,7 +89,7 @@ class ParseConsumer(ConsumerBase):
             resheaders = parse.quote(str(postDataJson['resHeaders']))
         )
 
-        if chromeType == 'formData' or chromeType == 'raw':
+        if chromeType in ['formData', 'raw']:
             parseObj = ParseBaseClass.ParseBase(postDataJson['url'], chromeType, contentType, postDataJson['requestBody'])
             res = parseObj.parse()
             if res:
@@ -100,6 +100,19 @@ class ParseConsumer(ConsumerBase):
         else:
             parseObj = ParseBaseClass.ParseBase(postDataJson['url'], chromeType, contentType, '')
             res = parseObj.parse()
+
+        if res.dataformat == 'UNKNOWN':
+            '''
+            数据格式解析失败，应存储在解析失败数据库
+            '''
+            session = self.dbsession()
+            save2data_raw.parsestatus = 0
+            session.add(save2data_raw)
+            session.commit()
+            session.close()
+            return None
+        else:
+            pass
 
         res.cookie = cookie
         res.ct = contentType
@@ -118,10 +131,6 @@ class ParseConsumer(ConsumerBase):
 
         if chromeType in ['empty','error']:
             res.postData = ''
-
-
-
-
 
         key1raw = res.scheme + res.method + res.netloc + res.path
         key1 = hashlib.md5(key1raw.encode('utf-8')).hexdigest()
@@ -208,6 +217,7 @@ class ParseConsumer(ConsumerBase):
             session.add(save2data_raw)
             session.add(save2data_clean)
             session.flush()
+            save2data_raw.parsestatus = 1
             save2data_clean_key.dataid = save2data_clean.id
             session.add(save2data_clean_key)
             session.commit()

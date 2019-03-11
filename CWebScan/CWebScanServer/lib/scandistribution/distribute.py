@@ -30,6 +30,13 @@ class DistributeConsumer(ConsumerBase):
         ScanLogger.warning('DistributeConsumer received message # %s from %s: %s',
                     basic_deliver.delivery_tag, properties.app_id, data.netloc)
 
+        '''
+        此处可对原始数据包进行逻辑判断，以通过设定routing_key而进入不同扫描器的消息队列中
+        '''
+        if data.dataformat == 'FORMDATA':
+            self.transQueue.put({'routing_key': 'fastjsonrce.key', 'body': pickle.dumps(data)})
+            self.transQueue.put({'routing_key': 'sqliscan.key', 'body': pickle.dumps(data)})
+            self.transQueue.put({'routing_key': 'rcescan.key', 'body': pickle.dumps(data)})
         scanid_sqli = self.save2db(data, ScanTaskVulnType['sqli'])
         scanid_rce = self.save2db(data, ScanTaskVulnType['rce'])
         ScanLogger.warning('DistributeConsumer generate scanid %s' % scanid_sqli)
