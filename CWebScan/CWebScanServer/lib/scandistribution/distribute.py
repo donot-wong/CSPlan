@@ -33,10 +33,27 @@ class DistributeConsumer(ConsumerBase):
         '''
         此处可对原始数据包进行逻辑判断，以通过设定routing_key而进入不同扫描器的消息队列中
         '''
-        # if data.dataformat == 'FORMDATA':
-            # self.transQueue.put({'routing_key': 'fastjsonrce.key', 'body': pickle.dumps(data)})
-            # self.transQueue.put({'routing_key': 'sqliscan.key', 'body': pickle.dumps(data)})
-            # self.transQueue.put({'routing_key': 'rcescan.key', 'body': pickle.dumps(data)})
+        if data.dataformat == 'FORMDATA':
+            # 注入
+            # RCE
+            # XSS
+            # 
+        elif data.dataformat == 'JSON':
+            # fastjson
+            # 注入
+            # rce
+        elif data.dataformat == 'XML':
+            # xxe
+        elif data.dataformat == 'MULTIPART':
+            # 文件上传
+            # 注入
+            # rce
+        elif data.dataformat == 'NOBODY':
+            # 注入
+            # RCE
+            # XSS
+        else:
+            pass
         scanid_sqli = self.save2db(data, ScanTaskVulnType['sqli'])
         scanid_rce = self.save2db(data, ScanTaskVulnType['rce'])
         ScanLogger.warning('DistributeConsumer generate scanid %s' % scanid_sqli)
