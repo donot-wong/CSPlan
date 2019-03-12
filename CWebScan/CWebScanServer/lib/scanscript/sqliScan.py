@@ -44,7 +44,7 @@ class SqliScan(ScanBase):
         # ScanLogger.warning('run called SqliScanBase')
         self.init()
 
-        if self.method == 'GET':
+        if self.dataformat == 'NOBODY':
             for key, value in self.getData.items():
                 if key not in BlackParamName:
                     hasErrorSqliVuln = self.errorbased('params', key)

@@ -32,6 +32,7 @@ class ScanBase(object):
 
     def init(self):
         self.ct = self.SrcRequest.ct
+        self.dataformat = self.SrcRequest.dataformat
         self.urlRaw = self.SrcRequest.url
         self.url = self.SrcRequest.scheme + '://' + self.SrcRequest.netloc + self.SrcRequest.path
         self.cookie = self.SrcRequest.cookie
