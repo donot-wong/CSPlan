@@ -35,24 +35,15 @@ class ParseConsumer(ConsumerBase):
         '''
         重写消息处理方法
         '''
-        scanflag = True
+
         data_parsed = self.parse_message(body)
         if data_parsed is None:
             self.acknowledge_message(basic_deliver.delivery_tag)
         else:
-            if data_parsed.method == 'GET' and data_parsed.query == '':
-                scanflag = False
-            elif data_parsed.method == 'POST' and data_parsed.body == '' and data_parsed.query == '':
-                scanflag = False
-            elif data_parsed.query == '' and data_parsed.body == '':
-                scanflag = False
-            elif data_parsed.statuscode >= 400:
-                scanflag = False
             ScanLogger.warning('ParseConsumer Received message # %s from %s: %s',
                         basic_deliver.delivery_tag, properties.app_id, data_parsed.netloc)
             self.acknowledge_message(basic_deliver.delivery_tag)
-            if scanflag is True:
-                self.TransQUEUE.put(pickle.dumps(data_parsed))
+            self.TransQUEUE.put(pickle.dumps(data_parsed))
 
     def parse_message(self, body):
         postDataJson = json.loads(pickle.loads(body))
@@ -107,6 +98,13 @@ class ParseConsumer(ConsumerBase):
             '''
             session = self.dbsession()
             save2data_raw.parsestatus = 0
+            session.add(save2data_raw)
+            session.commit()
+            session.close()
+            return None
+        elif postDataJson['statusCode'] >= 400:
+            session = self.dbsession()
+            save2data_raw.parsestatus = 2
             session.add(save2data_raw)
             session.commit()
             session.close()

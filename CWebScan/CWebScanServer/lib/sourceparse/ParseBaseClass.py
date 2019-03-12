@@ -122,6 +122,8 @@ class ParseBase(object):
 			self.parseData()
 		else:
 			self.ret.dataformat = 'NOBODY'
+			if self.ret.query == '':
+				self.ret.dataformat = 'ALLNO'
 		return self.ret
 
 	def _unquote_header_value(self, value, is_filename=False):
@@ -207,3 +209,4 @@ if __name__ == '__main__':
 	res = parseTest.parse()
 	print(res.__dict__)
 	# parseTest.parse()
+	# print(urlparse('http://baidu.com/search/1'))
