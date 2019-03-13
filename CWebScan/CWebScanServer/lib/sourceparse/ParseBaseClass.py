@@ -186,7 +186,8 @@ class ParseBase(object):
 		if re.search(JSON_RECOGNITION_REGEX, data):
 			# return True, 'JSON', json.loads(data)
 			self.ret.dataformat = 'JSON'
-			return True, json.loads(data)
+			# return True, json.loads(data)
+			return True, data
 		elif re.search(JSON_LIKE_RECOGNITION_REGEX, data):
 			self.ret.dataformat = 'UNKNOWN'
 			return False, data
@@ -205,8 +206,14 @@ class ParseBase(object):
 
 
 if __name__ == '__main__':
-	parseTest = ParseBase('http://baidu.com/search/1?id=1&name=2', 'formData', 'application/x-www-form-urlencoded; charset=UTF-8', '{"0":"%7B%221%22%3Atrue%2C%224%22%3A%22%7B%5C%221%5C%22%3A%7B%5C%221%5C%22%3A%7B%5C%221%5C%22%3A%7B%5C%221%5C%22%3A3%2C%5C%222%5C%22%3A2%7D%7D%2C%5C%222%5C%22%3A%5C%22CgYKBAgDEAESEgmPYDkzdZHZghHtTuS0QiCpNBoHCIEUEAMYAQ%3D%3D%5C%22%2C%5C%223%5C%22%3A%7B%5C%221%5C%22%3A1%2C%5C%222%5C%22%3A%5C%22SmzynTSacNvlCrMSD7d+yPupyo8%3D%5C%22%7D%2C%5C%224%5C%22%3A1552304605593%2C%5C%225%5C%22%3A1552287486935%2C%5C%226%5C%22%3A%5C%2215%5C%22%2C%5C%227%5C%22%3A1034%7D%2C%5C%226%5C%22%3A%7B%5C%221%5C%22%3A%7B%5C%221%5C%22%3A%7B%5C%221%5C%22%3A3%2C%5C%222%5C%22%3A20150820%7D%2C%5C%222%5C%22%3A%5C%2210.0%5C%22%2C%5C%223%5C%22%3A%5C%22JS%5C%22%2C%5C%224%5C%22%3A%5C%22wbl%5C%22%7D%2C%5C%224%5C%22%3Afalse%7D%7D%22%2C%225%22%3A%7B%221%22%3A%7B%221%22%3A3%2C%222%22%3A2%7D%7D%2C%226%22%3A1%2C%227%22%3A2%2C%228%22%3A%7B%221%22%3A114%2C%222%22%3A%22KkMKIFZWY2tqZjlpR3dibWNzOUVhZWZOU25yOURuUEJnQ1lJEP7wGBhkIhBVVFlxRVEwdVlETHBzanVIKbO6FAMC3T5r%22%7D%2C%2210%22%3A%2214%22%7D"}')
-	res = parseTest.parse()
-	print(res.__dict__)
+	# parseTest = ParseBase('http://baidu.com/search/1', 'formData', 'application/x-www-form-urlencoded; charset=UTF-8', '{"0":"%7B%221%22%3Atrue%2C%224%22%3A%22%7B%5C%221%5C%22%3A%7B%5C%221%5C%22%3A%7B%5C%221%5C%22%3A%7B%5C%221%5C%22%3A3%2C%5C%222%5C%22%3A2%7D%7D%2C%5C%222%5C%22%3A%5C%22CgYKBAgDEAESEgmPYDkzdZHZghHtTuS0QiCpNBoHCIEUEAMYAQ%3D%3D%5C%22%2C%5C%223%5C%22%3A%7B%5C%221%5C%22%3A1%2C%5C%222%5C%22%3A%5C%22SmzynTSacNvlCrMSD7d+yPupyo8%3D%5C%22%7D%2C%5C%224%5C%22%3A1552304605593%2C%5C%225%5C%22%3A1552287486935%2C%5C%226%5C%22%3A%5C%2215%5C%22%2C%5C%227%5C%22%3A1034%7D%2C%5C%226%5C%22%3A%7B%5C%221%5C%22%3A%7B%5C%221%5C%22%3A%7B%5C%221%5C%22%3A3%2C%5C%222%5C%22%3A20150820%7D%2C%5C%222%5C%22%3A%5C%2210.0%5C%22%2C%5C%223%5C%22%3A%5C%22JS%5C%22%2C%5C%224%5C%22%3A%5C%22wbl%5C%22%7D%2C%5C%224%5C%22%3Afalse%7D%7D%22%2C%225%22%3A%7B%221%22%3A%7B%221%22%3A3%2C%222%22%3A2%7D%7D%2C%226%22%3A1%2C%227%22%3A2%2C%228%22%3A%7B%221%22%3A114%2C%222%22%3A%22KkMKIFZWY2tqZjlpR3dibWNzOUVhZWZOU25yOURuUEJnQ1lJEP7wGBhkIhBVVFlxRVEwdVlETHBzanVIKbO6FAMC3T5r%22%7D%2C%2210%22%3A%2214%22%7D"}')
+	# res = parseTest.parse()
+	# print((res.getData))
 	# parseTest.parse()
 	# print(urlparse('http://baidu.com/search/1'))
+
+	# t = {"username": "donot", "age": "18"}
+	t = '{"username": "donot", "age": "18"}'
+	jsont = json.loads(t)
+	jsont["username"] = jsont["username"] + '"'
+	print(json.dumps(jsont))

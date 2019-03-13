@@ -159,7 +159,6 @@ class ScanBase(object):
             return True, averageLength
         else:
             return False, averageLength
-        # print(respLengthList)
 
 
     def reqSendForRepeatCheck(self):
@@ -174,21 +173,32 @@ class ScanBase(object):
             resp = s.send(prepped, verify=False, timeout=20, allow_redirects=False)
         except Exception as e:
             return 0, None
-        # print(len(resp.content.decode('utf-8')))
-        # https://www.cnblogs.com/yoyoketang/p/8035428.html
         return resp.elapsed.total_seconds(), resp.headers
 
 
     def reqSend(self, loc, data, url, method, cookie, ua, ct, header):
         s = Session()
         if loc == 'params' and method == 'GET':
-            req = Request(method, url,
+            req = Request(
+                method, 
+                url,
                 params = data,
                 headers = header,
             )
         elif loc == 'data' and method == 'POST':
-            req = Request(method, url,
+            req = Request(
+                method, 
+                url,
+                params = self.getData,
                 data = data,
+                headers = header
+            )
+        elif loc == 'params' and method == 'POST':
+            req = Request(
+                method, 
+                url, 
+                params = data,
+                data = self.postData,
                 headers = header
             )
         else:

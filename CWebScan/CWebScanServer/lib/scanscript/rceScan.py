@@ -32,40 +32,75 @@ class RceScan(ScanBase):
     def run(self):
         self.init()
 
-        if self.method == 'GET':
+        if self.dataformat == 'NOBODY':
             for key, value in self.getData.items():
                 if key not in BlackParamName:
-                    hasErrorSqliVuln = self.responsebased('params', key)
-                    if hasErrorSqliVuln:
+                    hasRceVuln = self.responsebased('params', key)
+                    if hasRceVuln:
                         self.saveScanResult(VulnType['rce'], key)
                         break
                     else:
-                        hasTimeSqliVuln = self.dnslogbased('params', key)
-                        if hasTimeSqliVuln:
+                        hasDnslogRceVuln = self.dnslogbased('params', key)
+                        if hasDnslogRceVuln:
                             self.saveScanResult(VulnType['rce-dnslog']. key)
                             break
                         else:
                             continue
                 else:
                     continue
-        elif self.method == 'POST' and self.postData != '':
+        elif self.dataformat == 'FORMDATA':
             for key, value in self.postData.items():
                 if key not in BlackParamName:
-                    hasErrorSqliVuln = self.responsebased('data', key)
-                    if hasErrorSqliVuln:
+                    hasRceVuln = self.responsebased('data', key)
+                    if hasRceVuln:
                         self.saveScanResult(VulnType['rce'], key)
                         break
                     else:
-                        hasTimeSqliVuln = self.dnslogbased('data', key)
-                        if hasTimeSqliVuln:
+                        hasDnslogRceVuln = self.dnslogbased('data', key)
+                        if hasDnslogRceVuln:
                             self.saveScanResult(VulnType['rce-dnslog'], key)
                             break
                         else:
                             continue
                 else:
                     continue
+        elif self.dataformat == 'JSON':
+            self.jsondata = json.loads(self.postData)
+            for key, value in self.jsondata.items():
+                if key not in BlackParamName:
+                    hasRceVuln = self.responsebased('data', key)
+                    if hasRceVuln:
+                        self.saveScanResult(VulnType['rce'], key)
+                    else:
+                        hasDnslogRceVuln = self.dnslogbased('data', key)
+                        if hasDnslogRceVuln:
+                            self.saveScanResult(VulnType['rce'], key)
+                            break
+                        else:
+                            continue
+                else:
+                    continue
+        elif self.dataformat == 'MULTIPART':
+            pass
         else:
             pass
+
+        if self.dataformat in ['FORMDATA', 'JSON'] and self.getData != {}:
+            for key, value in self.getData.items():
+                if key not in BlackParamName:
+                    hasRceVuln = self.responsebased('params', key)
+                    if hasRceVuln:
+                        self.saveScanResult(VulnType['rce'], key)
+                        break
+                    else:
+                        hasDnslogRceVuln = self.dnslogbased('params', key)
+                        if hasDnslogRceVuln:
+                            self.saveScanResult(VulnType['rce-dnslog']. key)
+                            break
+                        else:
+                            continue
+                else:
+                    continue
 
         self.changeScanStatus(ScanTaskStatus['rce_dnslog_send_finish_check_no'])
 
@@ -95,19 +130,22 @@ class RceScan(ScanBase):
         无空格 cu$9rl${IFS}baidu.com {curl,baidu.com}
         '''
         payload_randstr =  randomStr(5, seed=int(self.saveid[6:]))
-        if loc == 'params' and self.method == 'GET':
+        if loc == 'params':
             for payload in RCEPayload_DNSLOG:
                 _getData = copy.copy(self.getData)
                 _getData[key] = _getData[key] + payload.format(Separator='${IFS}',randStr=payload_randstr, DNSLogDomain=CWebScanSetting.dnslog_prefix+'.'+CWebScanSetting.log_suffix)
                 res = self.reqSend(loc, _getData, self.url, self.method, self.cookie, self.ua, self.ct, self.SrcRequestHeaders)
-        elif loc == 'data' and self.method == 'POST':
+        elif self.dataformat == 'FORMDATA':
             for payload in RCEPayload_DNSLOG:
                 _postData = copy.copy(self.postData)
                 _postData[key] = _postData[key] + payload.format(Separator='${IFS}', randStr=payload_randstr, DNSLogDomain=CWebScanSetting.dnslog_prefix + '.' + CWebScanSetting.log_suffix)
                 # print(_postData)
                 res = self.reqSend(loc, _postData, self.url, self.method, self.cookie, self.ua, self.ct, self.SrcRequestHeaders)
-        elif loc == 'params' and self.method == 'POST':
-            return False 
+        elif self.dataformat == 'JSON':
+            for payload in RCEPayload_DNSLOG:
+                _postData = copy.copy(self.jsondata)
+                _postData[key] = _postData[key] + payload.format(Separator='${IFS', randStr=payload_randstr, DNSLogDomain=CWebScanSetting.dnslog_prefix + '.' + CWebScanSetting.log_suffix)
+                res = self.reqSend(loc, json.dumps(_postData), self.url, self.method, self.cookie, self.ua, self.ct, self.SrcRequestHeaders)
         else:
             return False
         ScanLogger.warning('All Dnslog Payload Send Finish, Payload_Str: %s' % payload_randstr)

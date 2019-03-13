@@ -29,10 +29,20 @@ class DistributeConsumer(ConsumerBase):
         data = pickle.loads(body)
         ScanLogger.warning('DistributeConsumer received message # %s from %s: %s',
                     basic_deliver.delivery_tag, properties.app_id, data.netloc)
+        
+        '''
+        可重放检查
+        '''
+        isOk, averageLength = self.repeatCheck(data)
+        if isOk:
+            pass
+        else:
+            self.changeScanStatus(data.scanid)
+            self.acknowledge_message(basic_deliver.delivery_tag)
+            return
 
         '''
         此处可对原始数据包进行逻辑判断，以通过设定routing_key而进入不同扫描器的消息队列中
-
         '''
         scanList = []
         isHostScaned = self.hostScanCheck(data.netloc)
@@ -128,6 +138,92 @@ class DistributeConsumer(ConsumerBase):
         session.commit()
         session.close()
         return scanid
+
+    def repeatCheck(self, data):
+        '''
+        可重放检测
+        没有Conetent-Length的包不做检测，依赖Cotent-Length进行检测，没有Content-Length暂时不做扫描
+        '''
+        # url = data.url
+        # method = data.method
+        if 'Content-Length' in data.reqHeaders:
+            src_ctl = data.reqHeaders['Content-Length']
+        elif 'content-length' in data.reqHeaders:
+            src_ctl = data.reqHeaders['content-length']
+        else:
+            src_ctl = 0
+            NoLength = True
+        if NoLength:
+            return True, None
+        respLengthList = []
+        for i in range(3):
+            ela, headers = self.reqSendForRepeatCheck(data.url, data.method, data.postData, data.reqHeaders)
+            if headers is not None:
+                self.respTimeList.append(ela)
+                self.timesRcordList.append(ela)
+                if 'Content-Length' in headers:
+                    respLengthList.append(int(headers['Content-Length']))
+                elif 'content-length' in headers:
+                    respLengthList.append(int(headers['content-length']))
+                else:
+                    ctl = -1
+            else:
+                pass
+        if len(respLengthList) > 1:
+            averageLength = sum(respLengthList) / len(respLengthList)
+        else:
+            for i in range(3):
+                ela, headers = self.reqSendForRepeatCheck(data.url, data.method, data.postData, data.reqHeaders)
+                if headers is not None:
+                    self.respTimeList.append(ela)
+                    if 'Content-Length' in headers:
+                        respLengthList.append(int(headers['Content-Length']))
+                    elif 'content-length' in headers:
+                        respLengthList.append(int(headers['content-length']))
+                    else:
+                        ctl = -1
+                else:
+                    pass
+
+            if len(respLengthList) < 3:
+                '''
+                可重放性检测失败
+                '''
+                return False, None
+            else:
+                averageLength = sum(respLengthList) / len(respLengthList)
+
+        ration = abs(averageLength - res_length) / res_length
+        if ration < 0.2:
+            return True, averageLength
+        else:
+            return False, averageLength
+
+    def reqSendForRepeatCheck(self, method, url, data, headers):
+        s = Session()
+        req = Request(method, 
+            url = url,
+            data = data,
+            headers = headers
+        )
+        prepped = s.prepare_request(req)
+        try:
+            resp = s.send(prepped, verify=False, timeout=20, allow_redirects=False)
+        except Exception as e:
+            return 0, None
+        return resp.elapsed.total_seconds(), resp.headers
+
+    def changeScanStatus(self, scanid, status = ScanTaskStatus['repeat_check_failed']):
+        session = self.dbsession()
+        scans = session.query(ScanTask).filter_by(id=scanid).all()
+        if len(scans) == 1:
+            scans[0].status = status
+            session.commit()
+            session.close()
+            # return True
+        else:
+            ScanLogger.warning('ChangeScanStatus Failed, the scan id not only unique, scanid: %s' % scanid)
+            # return False
 
 
 def distributeMain(q):

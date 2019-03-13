@@ -60,7 +60,7 @@ class SqliScan(ScanBase):
                             continue
                 else:
                     continue
-        elif self.method == 'POST' and self.postData != '':
+        elif self.dataformat == 'FORMDATA':
             for key, value in self.postData.items():
                 if key not in BlackParamName:
                     hasErrorSqliVuln = self.errorbased('data', key)
@@ -76,8 +76,50 @@ class SqliScan(ScanBase):
                             continue
                 else:
                     continue
+        elif self.dataformat == 'JSON':
+            self.jsondata = json.loads(self.postData)
+            for key, value in self.jsondata.items():
+                if key not in BlackParamName:
+                    hasErrorSqliVuln = self.errorbased('data', key)
+                    if hasErrorSqliVuln:
+                        self.saveScanResult(VulnType['sqli-error', key])
+                        continue
+                    else:
+                        hasTimeSqliVuln = self.timebased('data', key)
+                        if hasTimeSqliVuln:
+                            self.saveScanResult(VulnType['sqli-time'], key)
+                            continue
+                        else:
+                            continue
+                else:
+                    continue
+        elif self.dataformat == 'MULTIPART':
+            pass
         else:
             pass
+
+
+        # 其他含get参数的情况
+        if self.dataformat in ['FORMDATA', 'JSON'] and self.getData != {}:
+            for key, value in self.getData.items():
+                if key not in BlackParamName:
+                    hasErrorSqliVuln = self.errorbased('params', key)
+                    if hasErrorSqliVuln:
+                        self.saveScanResult(VulnType['sqli-error'], key)
+                        continue
+                    else:
+                        hasTimeSqliVuln = self.timebased('params', key)
+                        if hasTimeSqliVuln:
+                            self.saveScanResult(VulnType['sqli-time', time])
+                            continue
+                else:
+                    continue
+        else:
+            pass
+
+
+        # referer cookie header注入扫描
+
 
         self.changeScanStatus()
 
@@ -85,20 +127,24 @@ class SqliScan(ScanBase):
         '''
         基于报错的注入扫描
         '''
-        if loc == 'params' and self.method == 'GET':
+        if loc == 'params':
             _getData = copy.copy(self.getData)
             _getData[key] = _getData[key] + '\'"'
             res = self.reqSend(loc, _getData, self.url, self.method, self.cookie, self.ua, self.ct, self.SrcRequestHeaders)
             self.sendreqCnt += 1
             return self.checkIsErrorBaseSqli(res)
-        elif loc == 'data' and self.method == 'POST':
+        elif self.dataformat == 'FORMDATA':
             _postData = copy.copy(self.postData)
             _postData[key] = _postData[key] + '\'"'
             res = self.reqSend(loc, _postData, self.url, self.method, self.cookie, self.ua, self.ct, self.SrcRequestHeaders)
             self.sendreqCnt += 1
             return self.checkIsErrorBaseSqli(res)
-        elif loc == 'params' and self.method == 'POST':
-            return False
+        elif self.dataformat == 'JSON':
+            _postData = copy.copy(self.jsondata)
+            _postData[key] = _postData[key] + '\'"'
+            res = self.reqSend(loc, json.dumps(_postData), self.url, self.method, self.cookie, self.ua, self.ct, self.SrcRequestHeaders)
+            self.sendreqCnt += 1
+            return self.checkIsErrorBaseSqli(res)
         else:
             ScanLogger.warning('Can not handle this request\'s method: %s' % self.method)
             return False
@@ -113,36 +159,51 @@ class SqliScan(ScanBase):
             pass
         else:
             return False
-        if loc == 'params' and self.method == 'GET':
+        if loc == 'params':
             for payload_idx in range(len(SQLiPayload_Sleep)):
                 _getData = copy.copy(self.getData)
                 _getData[key] = _getData[key] + SQLiPayload_Sleep[payload_idx].format(sleep='sleep(3)')
-                # print(_getData)
-                res = self.reqSend(loc,_getData,self.url,self.method,self.cookie,self.ua,self.ct,self.SrcRequestHeaders)
+                res = self.reqSend(loc, _getData, self.url, self.method, self.cookie, self.ua, self.ct, self.SrcRequestHeaders)
+                self.sendreqCnt += 1
                 if res is None:
                     continue
                 if res.elapsed.total_seconds() >= max(MIN_VALID_DELAYED_RESPONSE, self.delayTimeJudgeStandard):
-                    # print('Delay Occur: resptime: %s' % res.elapsed.total_seconds())
                     if self.twiceCheckForTimeBased(loc, key, payload_idx, res.elapsed):
-                        # print('twiceCheckForTimeBased Successfully!')
                         return True
                     else:
-                        # print('twiceCheckForTimeBased Failed')
                         continue
-        elif loc == 'data' and self.method == 'POST':
+                else:
+                    continue
+        elif self.dataformat == 'FORMDATA':
             for payload_idx in range(len(SQLiPayload_Sleep)):
                 _postData = copy.copy(self.postData)
                 _postData[key] = _postData[key] + SQLiPayload_Sleep[payload_idx].format(sleep='sleep(3)')
-                res = self.reqSend(loc,_postData,self.url,self.method, self.cookie, self.ua, self.ct, self.SrcRequestHeaders)
+                res = self.reqSend(loc, _postData, self.url, self.method, self.cookie, self.ua, self.ct, self.SrcRequestHeaders)
+                self.sendreqCnt += 1
                 if  res is None:
                     continue
                 if res.elapsed.total_seconds() > max(MIN_VALID_DELAYED_RESPONSE, self.delayTimeJudgeStandard):
-                    if self.twiceCheckForTimeBased(loc, key, payload_idx, res.elapsed):
+                    if self.twiceCheckForTimeBased(loc, key, payload_idx, res.elapsed.total_seconds()):
                         return True
                     else:
                         continue
-        elif loc == 'params' and self.method == 'POST':
-            return False
+                else:
+                    continue
+        elif self.dataformat == 'JSON':
+            for payload_idx in range(len(SQLiPayload_Sleep)):
+                _postData = copy.copy(self.jsondata)
+                _postData[key] = _postData[key] + SQLiPayload_Sleep[payload_idx].format(sleep='sleep(2)')
+                res = self.reqSend(loc, json.dumps(_postData), self.url, self.method, self.cookie, self.ua, self.ct, self.SrcRequestHeaders)
+                self.sendreqCnt += 1
+                if res is None:
+                    continue
+                if res.elapsed.total_seconds() > max(MIN_VALID_DELAYED_RESPONSE, self.delayTimeJudgeStandard):
+                    if self.twiceCheckForTimeBased(loc, key, payload_idx, res.elapsed.total_seconds()):
+                        return True
+                    else:
+                        continue
+                else:
+                    continue
         else:
             ScanLogger.warning('Can not handle this request\'s method: %s' % self.method)
             return False
@@ -156,44 +217,53 @@ class SqliScan(ScanBase):
             # print('twiceCheckForTimeBased Failed, els: %s' % ela)
             return False
         else:
-            if loc == 'params' and self.method == 'GET':
+            if loc == 'params':
                 _getData = copy.copy(self.getData)
                 _getData[key] = _getData[key] + SQLiPayload_Sleep_Normal[payload_idx]
-                # print('twiceCheckForTimeBased Normal Payload: ' + str(_getData))
                 res = self.reqSend(loc, _getData, self.url, self.method, self.cookie, self.ua, self.ct, self.SrcRequestHeaders)
+                self.sendreqCnt += 1
                 if res.elapsed.total_seconds() < max(MIN_VALID_DELAYED_RESPONSE, self.delayTimeJudgeStandard):
-                    _getData = copy.copy(self.getData)
-                    _getData[key] = _getData[key] + SQLiPayload_Sleep[payload_idx].format(sleep='sleep(3)')
-                    # print('twiceCheckForTimeBased Sleep Payload: %s' % str(_getData))
+                    # _getData = copy.copy(self.getData)
+                    _getData[key] = self.getData[key] + SQLiPayload_Sleep[payload_idx].format(sleep='sleep(3)')
                     res = self.reqSend(loc, _getData, self.url, self.method, self.cookie, self.ua, self.ct, self.SrcRequestHeaders)
+                    self.sendreqCnt += 1
                     if res.elapsed.total_seconds() >= max(MIN_VALID_DELAYED_RESPONSE, self.delayTimeJudgeStandard):
                         return True
                     else:
-                        # print('twiceCheckForTimeBased Sleep Payload checkFailed: ela: %s' % res.elapsed.total_seconds())
                         return False
                 else:
-                    # print('twiceCheckForTimeBased Normal Payload checkFailed: ela: %s' % res.elapsed.total_seconds())
                     return False
-            elif loc == 'data' and self.method == 'POST':
+            elif self.dataformat == 'FORMDATA':
                 _postData = copy.copy(self.postData)
                 _postData[key] = _postData[key] + SQLiPayload_Sleep_Normal[payload_idx]
-                print('twiceCheckForTimeBased Normal Payload: ' + str(_postData))
                 res = self.reqSend(loc, _postData, self.url, self.method, self.cookie, self.ua, self.ct, self.SrcRequestHeaders)
+                self.sendreqCnt += 1
                 if res.elapsed.total_seconds() < max(MIN_VALID_DELAYED_RESPONSE, self.delayTimeJudgeStandard):
-                    _postData = copy.copy(self.postData)
-                    _postData[key] = _postData[key] + SQLiPayload_Sleep[payload_idx].format(sleep='sleep(3)')
-                    print('twiceCheckForTimeBased Sleep Payload: %s' % str(_postData))
+                    # _postData = copy.copy(self.postData)
+                    _postData[key] = self.postData[key] + SQLiPayload_Sleep[payload_idx].format(sleep='sleep(3)')
                     res = self.reqSend(loc, _postData, self.url,self.method, self.cookie, self.ua, self.ct, self.SrcRequestHeaders)
+                    self.sendreqCnt += 1
                     if res.elapsed.total_seconds() >= max(MIN_VALID_DELAYED_RESPONSE, self.delayTimeJudgeStandard):
                         return True
                     else:
-                        print('twiceCheckForTimeBased Sleep Payload checkFailed: ela: %s' % res.elapsed.total_seconds())
                         return False
                 else:
-                    print('twiceCheckForTimeBased Normal Payload checkFailed: ela: %s' % res.elapsed.total_seconds())
                     return False
-            elif loc == 'params' and self.method == 'POST':
-                return False
+            elif self.dataformat == 'JSON':
+                _postData = copy.copy(self.jsondata)
+                _postData[key] = _postData[key] + SQLiPayload_Sleep_Normal[payload_idx]
+                res = self.reqSend(loc, json.dumps(_postData), self.url, self.method, self.cookie, self.ua, self.ct, self.SrcRequestHeaders)
+                self.sendreqCnt += 1
+                if res.elapsed.total_seconds() <  max(MIN_VALID_DELAYED_RESPONSE, self.delayTimeJudgeStandard):
+                    _postData[key] = self.jsondata[key] + SQLiPayload_Sleep[payload_idx].format(sleep='sleep(3)')
+                    res = self.reqSend(loc, json.dumps(_postData), self.url, self.method, self.cookie, self.ua, self.ct, self.SrcRequestHeaders)
+                    self.sendreqCnt += 1
+                    if res.elapsed.total_seconds() >= max(MIN_VALID_DELAYED_RESPONSE, self.delayTimeJudgeStandard):
+                        return True
+                    else:
+                        return False
+                else:
+                    return False
             else:
                 return False
 
@@ -224,11 +294,6 @@ class SqliScan(ScanBase):
         '''
         报错注入 报错内容检测
         '''
-        # dr = re.compile(r'<[^>]+>',re.S)
-        # dd = dr.sub('', res.text)
-        # print(res.text)
-        # if int(res.headers['content-length']) < 4332:
-        #     print(res.text)
         if res is None:
             return False
         else:
