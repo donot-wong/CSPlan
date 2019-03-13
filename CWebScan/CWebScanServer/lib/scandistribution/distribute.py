@@ -227,7 +227,7 @@ class DistributeConsumer(ConsumerBase):
 
 
 def distributeMain(q):
-    engine = create_engine('mysql+pymysql://root:123456@127.0.0.1:3306/test',pool_size=20)
+    engine = create_engine('mysql+pymysql://root:123456@127.0.0.1:3306/test', pool_size=20, pool_recycle=599, pool_timeout=30)
     DB_Session = sessionmaker(bind=engine)
     example = DistributeConsumer('amqp://guest:guest@localhost:5672/%2F', 'distribute', 'distribute.source', q, DB_Session)
     try:

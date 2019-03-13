@@ -223,7 +223,6 @@ class SqliScan(ScanBase):
                 res = self.reqSend(loc, _getData, self.url, self.method, self.cookie, self.ua, self.ct, self.SrcRequestHeaders)
                 self.sendreqCnt += 1
                 if res.elapsed.total_seconds() < max(MIN_VALID_DELAYED_RESPONSE, self.delayTimeJudgeStandard):
-                    # _getData = copy.copy(self.getData)
                     _getData[key] = self.getData[key] + SQLiPayload_Sleep[payload_idx].format(sleep='sleep(3)')
                     res = self.reqSend(loc, _getData, self.url, self.method, self.cookie, self.ua, self.ct, self.SrcRequestHeaders)
                     self.sendreqCnt += 1
@@ -239,7 +238,6 @@ class SqliScan(ScanBase):
                 res = self.reqSend(loc, _postData, self.url, self.method, self.cookie, self.ua, self.ct, self.SrcRequestHeaders)
                 self.sendreqCnt += 1
                 if res.elapsed.total_seconds() < max(MIN_VALID_DELAYED_RESPONSE, self.delayTimeJudgeStandard):
-                    # _postData = copy.copy(self.postData)
                     _postData[key] = self.postData[key] + SQLiPayload_Sleep[payload_idx].format(sleep='sleep(3)')
                     res = self.reqSend(loc, _postData, self.url,self.method, self.cookie, self.ua, self.ct, self.SrcRequestHeaders)
                     self.sendreqCnt += 1
@@ -341,7 +339,7 @@ class SqliScanConsumer(ConsumerBase):
 
 
 def SqliScanMain():
-    engine = create_engine('mysql+pymysql://root:123456@127.0.0.1:3306/test',pool_size=20)
+    engine = create_engine('mysql+pymysql://root:123456@127.0.0.1:3306/test', pool_size=20, pool_recycle=599, pool_timeout=30)
     DB_Session = sessionmaker(bind=engine)
     sqli = SqliScanConsumer('amqp://guest:guest@localhost:5672/%2F', 'sqliscan', 'sqliscan.key', DB_Session)
     try:
