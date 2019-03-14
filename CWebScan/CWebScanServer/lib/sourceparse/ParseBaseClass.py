@@ -175,7 +175,7 @@ class ParseBase(object):
 	def _parseRawData(self):
 		_data = json.loads(self.data)
 		_data_raw = ''
-		for value in _data:
+		for value in _data.values():
 			_data_raw += value
 		_data_raw = parse.unquote(_data_raw)
 		sts, data = self.dataFormatIdent(_data_raw)
@@ -215,5 +215,8 @@ if __name__ == '__main__':
 	# t = {"username": "donot", "age": "18"}
 	t = '{"username": "donot", "age": "18"}'
 	jsont = json.loads(t)
-	jsont["username"] = jsont["username"] + '"'
-	print(json.dumps(jsont))
+	print(type(jsont))
+	for value in jsont.values():
+		print(value)
+	# jsont["username"] = jsont["username"] + '"'
+	# print(json.dumps(jsont))

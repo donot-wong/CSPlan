@@ -133,25 +133,25 @@ class ParseConsumer(ConsumerBase):
         key1raw = res.scheme + res.method + res.netloc + res.path
         key1 = hashlib.md5(key1raw.encode('utf-8')).hexdigest()
 
-        if res.method == 'GET' and res.query != '':
+        if res.dataformat == 'NOBODY':
             keytype = 1
             key2raw = ''
             for key,value in res.getData.items():
                 key2raw = key2raw + key
             key2 = hashlib.md5(key2raw.encode('utf-8')).hexdigest()
-        elif res.method == 'POST'  and res.postData != '':
+        elif res.dataformat == 'FORMDATA':
             keytype = 1
             key2raw = ''
             for key,value in res.postData.items():
                 key2raw = key2raw + key
             key2 = hashlib.md5(key2raw.encode('utf-8')).hexdigest()
-        elif res.method == 'POST' and res.postData == '' and res.query != '':
+        elif res.dataformat == 'JSON':
             keytype = 1
             key2raw = ''
-            for key,value in res.getData.items():
+            for key,value in json.loads(res.postData).items():
                 key2raw = key2raw + key
             key2 = hashlib.md5(key2raw.encode('utf-8')).hexdigest()
-        elif res.method == 'GET' and res.query == '':
+        elif res.dataformat == 'ALLNO':
             keytype = 2
             key2 = ''
             key1 = self.genUrlKey(res.url)
