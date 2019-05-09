@@ -55,7 +55,7 @@ class data_clean(BaseModel):
 	body = Column(Text(5000))
 	# ua = Column(String(200))
 	ct = Column(String(200))
-	cookie = Column(String(5000))
+	cookie = Column(Text(5000))
 	reqheaders = Column(Text(5000))
 	resheaders = Column(Text(5000))
 	statuscode = Column(Integer)
