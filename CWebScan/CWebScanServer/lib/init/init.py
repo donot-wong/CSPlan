@@ -21,7 +21,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
 
-engine = create_engine('mysql+pymysql://root:123456@127.0.0.1:3306/test')
+engine = create_engine('mysql+pymysql://root:123456@127.0.0.1:3306/test', pool_size=20, pool_recycle=599, pool_timeout=30)
 DB_Session = sessionmaker(bind=engine)
 CWebScanSetting.DB_Session = DB_Session
 CWebScanSetting.engine = engine

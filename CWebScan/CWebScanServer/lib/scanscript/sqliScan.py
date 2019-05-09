@@ -78,21 +78,24 @@ class SqliScan(ScanBase):
                     continue
         elif self.dataformat == 'JSON':
             self.jsondata = json.loads(self.postData)
-            for key, value in self.jsondata.items():
-                if key not in BlackParamName:
-                    hasErrorSqliVuln = self.errorbased('data', key)
-                    if hasErrorSqliVuln:
-                        self.saveScanResult(VulnType['sqli-error', key])
-                        continue
-                    else:
-                        hasTimeSqliVuln = self.timebased('data', key)
-                        if hasTimeSqliVuln:
-                            self.saveScanResult(VulnType['sqli-time'], key)
+            try:
+                for key, value in self.jsondata.items():
+                    if key not in BlackParamName:
+                        hasErrorSqliVuln = self.errorbased('data', key)
+                        if hasErrorSqliVuln:
+                            self.saveScanResult(VulnType['sqli-error', key])
                             continue
                         else:
-                            continue
-                else:
-                    continue
+                            hasTimeSqliVuln = self.timebased('data', key)
+                            if hasTimeSqliVuln:
+                                self.saveScanResult(VulnType['sqli-time'], key)
+                                continue
+                            else:
+                                continue
+                    else:
+                        continue
+            except AttributeError as e:
+                pass
         elif self.dataformat == 'MULTIPART':
             pass
         else:
@@ -129,19 +132,19 @@ class SqliScan(ScanBase):
         '''
         if loc == 'params':
             _getData = copy.copy(self.getData)
-            _getData[key] = _getData[key] + '\'"'
+            _getData[key] = str(_getData[key]) + '\'"'
             res = self.reqSend(loc, _getData, self.url, self.method, self.cookie, self.ua, self.ct, self.SrcRequestHeaders)
             self.sendreqCnt += 1
             return self.checkIsErrorBaseSqli(res)
         elif self.dataformat == 'FORMDATA':
             _postData = copy.copy(self.postData)
-            _postData[key] = _postData[key] + '\'"'
+            _postData[key] = str(_postData[key]) + '\'"'
             res = self.reqSend(loc, _postData, self.url, self.method, self.cookie, self.ua, self.ct, self.SrcRequestHeaders)
             self.sendreqCnt += 1
             return self.checkIsErrorBaseSqli(res)
         elif self.dataformat == 'JSON':
             _postData = copy.copy(self.jsondata)
-            _postData[key] = _postData[key] + '\'"'
+            _postData[key] = str(_postData[key]) + '\'"'
             res = self.reqSend(loc, json.dumps(_postData), self.url, self.method, self.cookie, self.ua, self.ct, self.SrcRequestHeaders)
             self.sendreqCnt += 1
             return self.checkIsErrorBaseSqli(res)
@@ -162,7 +165,7 @@ class SqliScan(ScanBase):
         if loc == 'params':
             for payload_idx in range(len(SQLiPayload_Sleep)):
                 _getData = copy.copy(self.getData)
-                _getData[key] = _getData[key] + SQLiPayload_Sleep[payload_idx].format(sleep='sleep(3)')
+                _getData[key] = str(_getData[key]) + SQLiPayload_Sleep[payload_idx].format(sleep='sleep(3)')
                 res = self.reqSend(loc, _getData, self.url, self.method, self.cookie, self.ua, self.ct, self.SrcRequestHeaders)
                 self.sendreqCnt += 1
                 if res is None:
@@ -177,7 +180,7 @@ class SqliScan(ScanBase):
         elif self.dataformat == 'FORMDATA':
             for payload_idx in range(len(SQLiPayload_Sleep)):
                 _postData = copy.copy(self.postData)
-                _postData[key] = _postData[key] + SQLiPayload_Sleep[payload_idx].format(sleep='sleep(3)')
+                _postData[key] = str(_postData[key]) + SQLiPayload_Sleep[payload_idx].format(sleep='sleep(3)')
                 res = self.reqSend(loc, _postData, self.url, self.method, self.cookie, self.ua, self.ct, self.SrcRequestHeaders)
                 self.sendreqCnt += 1
                 if  res is None:
@@ -192,7 +195,7 @@ class SqliScan(ScanBase):
         elif self.dataformat == 'JSON':
             for payload_idx in range(len(SQLiPayload_Sleep)):
                 _postData = copy.copy(self.jsondata)
-                _postData[key] = _postData[key] + SQLiPayload_Sleep[payload_idx].format(sleep='sleep(2)')
+                _postData[key] = str(_postData[key]) + SQLiPayload_Sleep[payload_idx].format(sleep='sleep(2)')
                 res = self.reqSend(loc, json.dumps(_postData), self.url, self.method, self.cookie, self.ua, self.ct, self.SrcRequestHeaders)
                 self.sendreqCnt += 1
                 if res is None:
@@ -219,11 +222,11 @@ class SqliScan(ScanBase):
         else:
             if loc == 'params':
                 _getData = copy.copy(self.getData)
-                _getData[key] = _getData[key] + SQLiPayload_Sleep_Normal[payload_idx]
+                _getData[key] = str(_getData[key]) + SQLiPayload_Sleep_Normal[payload_idx]
                 res = self.reqSend(loc, _getData, self.url, self.method, self.cookie, self.ua, self.ct, self.SrcRequestHeaders)
                 self.sendreqCnt += 1
                 if res.elapsed.total_seconds() < max(MIN_VALID_DELAYED_RESPONSE, self.delayTimeJudgeStandard):
-                    _getData[key] = self.getData[key] + SQLiPayload_Sleep[payload_idx].format(sleep='sleep(3)')
+                    _getData[key] = str(self.getData[key]) + SQLiPayload_Sleep[payload_idx].format(sleep='sleep(3)')
                     res = self.reqSend(loc, _getData, self.url, self.method, self.cookie, self.ua, self.ct, self.SrcRequestHeaders)
                     self.sendreqCnt += 1
                     if res.elapsed.total_seconds() >= max(MIN_VALID_DELAYED_RESPONSE, self.delayTimeJudgeStandard):
@@ -234,11 +237,11 @@ class SqliScan(ScanBase):
                     return False
             elif self.dataformat == 'FORMDATA':
                 _postData = copy.copy(self.postData)
-                _postData[key] = _postData[key] + SQLiPayload_Sleep_Normal[payload_idx]
+                _postData[key] = str(_postData[key]) + SQLiPayload_Sleep_Normal[payload_idx]
                 res = self.reqSend(loc, _postData, self.url, self.method, self.cookie, self.ua, self.ct, self.SrcRequestHeaders)
                 self.sendreqCnt += 1
                 if res.elapsed.total_seconds() < max(MIN_VALID_DELAYED_RESPONSE, self.delayTimeJudgeStandard):
-                    _postData[key] = self.postData[key] + SQLiPayload_Sleep[payload_idx].format(sleep='sleep(3)')
+                    _postData[key] = str(self.postData[key]) + SQLiPayload_Sleep[payload_idx].format(sleep='sleep(3)')
                     res = self.reqSend(loc, _postData, self.url,self.method, self.cookie, self.ua, self.ct, self.SrcRequestHeaders)
                     self.sendreqCnt += 1
                     if res.elapsed.total_seconds() >= max(MIN_VALID_DELAYED_RESPONSE, self.delayTimeJudgeStandard):
@@ -249,11 +252,11 @@ class SqliScan(ScanBase):
                     return False
             elif self.dataformat == 'JSON':
                 _postData = copy.copy(self.jsondata)
-                _postData[key] = _postData[key] + SQLiPayload_Sleep_Normal[payload_idx]
+                _postData[key] = str(_postData[key]) + SQLiPayload_Sleep_Normal[payload_idx]
                 res = self.reqSend(loc, json.dumps(_postData), self.url, self.method, self.cookie, self.ua, self.ct, self.SrcRequestHeaders)
                 self.sendreqCnt += 1
                 if res.elapsed.total_seconds() <  max(MIN_VALID_DELAYED_RESPONSE, self.delayTimeJudgeStandard):
-                    _postData[key] = self.jsondata[key] + SQLiPayload_Sleep[payload_idx].format(sleep='sleep(3)')
+                    _postData[key] = str(self.jsondata[key]) + SQLiPayload_Sleep[payload_idx].format(sleep='sleep(3)')
                     res = self.reqSend(loc, json.dumps(_postData), self.url, self.method, self.cookie, self.ua, self.ct, self.SrcRequestHeaders)
                     self.sendreqCnt += 1
                     if res.elapsed.total_seconds() >= max(MIN_VALID_DELAYED_RESPONSE, self.delayTimeJudgeStandard):

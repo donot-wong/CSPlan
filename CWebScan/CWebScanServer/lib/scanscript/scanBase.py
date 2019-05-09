@@ -79,6 +79,7 @@ class ScanBase(object):
         vuln = VulnData(
             dataid = self.saveid,
             scanid = self.scanid,
+            netloc = self.SrcRequest.netloc,
             vulntype = vulntype,
             paramname = paramname,
             status = 0

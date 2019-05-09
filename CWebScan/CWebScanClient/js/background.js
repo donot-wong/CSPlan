@@ -71,12 +71,13 @@ function getReqAndsendRespHeader2Server(InitId, requestId, resIp, statusCode, re
 	// console.log(reqData);
 	sessionStorage.removeItem(saveKey);
 	// console.log(reqData);
-	$.ajax({
-		type: "POST",
-		url: CmonitorServer + "Receive?InitId=" + InitId + "&requestId=" + requestId,
-		data: JSON.stringify(reqData)
-	});
-	// console.log(JSON.stringify(reqData))
+	if (reqData['url'].indexOf('120.24.224.32') == -1) {
+		$.ajax({
+			type: "POST",
+			url: CmonitorServer + "Receive?InitId=" + InitId + "&requestId=" + requestId,
+			data: JSON.stringify(reqData)
+		});
+	}
 }
 
 

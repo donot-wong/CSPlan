@@ -148,9 +148,12 @@ class ParseConsumer(ConsumerBase):
         elif res.dataformat == 'JSON':
             keytype = 1
             key2raw = ''
-            for key,value in json.loads(res.postData).items():
-                key2raw = key2raw + key
-            key2 = hashlib.md5(key2raw.encode('utf-8')).hexdigest()
+            try:
+                for key,value in json.loads(res.postData).items():
+                    key2raw = key2raw + key
+                key2 = hashlib.md5(key2raw.encode('utf-8')).hexdigest()
+            except Exception as e:
+                key2 = ''      
         elif res.dataformat == 'ALLNO':
             keytype = 2
             key2 = ''

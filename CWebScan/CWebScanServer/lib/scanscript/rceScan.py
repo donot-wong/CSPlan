@@ -66,20 +66,23 @@ class RceScan(ScanBase):
                     continue
         elif self.dataformat == 'JSON':
             self.jsondata = json.loads(self.postData)
-            for key, value in self.jsondata.items():
-                if key not in BlackParamName:
-                    hasRceVuln = self.responsebased('data', key)
-                    if hasRceVuln:
-                        self.saveScanResult(VulnType['rce'], key)
-                    else:
-                        hasDnslogRceVuln = self.dnslogbased('data', key)
-                        if hasDnslogRceVuln:
+            try:
+                for key, value in self.jsondata.items():
+                    if key not in BlackParamName:
+                        hasRceVuln = self.responsebased('data', key)
+                        if hasRceVuln:
                             self.saveScanResult(VulnType['rce'], key)
-                            break
                         else:
-                            continue
-                else:
-                    continue
+                            hasDnslogRceVuln = self.dnslogbased('data', key)
+                            if hasDnslogRceVuln:
+                                self.saveScanResult(VulnType['rce'], key)
+                                break
+                            else:
+                                continue
+                    else:
+                        continue
+            except AttributeError as e:
+                pass
         elif self.dataformat == 'MULTIPART':
             pass
         else:
@@ -133,18 +136,18 @@ class RceScan(ScanBase):
         if loc == 'params':
             for payload in RCEPayload_DNSLOG:
                 _getData = copy.copy(self.getData)
-                _getData[key] = _getData[key] + payload.format(Separator='${IFS}',randStr=payload_randstr, DNSLogDomain=CWebScanSetting.dnslog_prefix+'.'+CWebScanSetting.log_suffix)
+                _getData[key] = str(_getData[key]) + payload.format(Separator='${IFS}',randStr=payload_randstr, DNSLogDomain=CWebScanSetting.dnslog_prefix+'.'+CWebScanSetting.log_suffix)
                 res = self.reqSend(loc, _getData, self.url, self.method, self.cookie, self.ua, self.ct, self.SrcRequestHeaders)
         elif self.dataformat == 'FORMDATA':
             for payload in RCEPayload_DNSLOG:
                 _postData = copy.copy(self.postData)
-                _postData[key] = _postData[key] + payload.format(Separator='${IFS}', randStr=payload_randstr, DNSLogDomain=CWebScanSetting.dnslog_prefix + '.' + CWebScanSetting.log_suffix)
+                _postData[key] = str(_postData[key]) + payload.format(Separator='${IFS}', randStr=payload_randstr, DNSLogDomain=CWebScanSetting.dnslog_prefix + '.' + CWebScanSetting.log_suffix)
                 # print(_postData)
                 res = self.reqSend(loc, _postData, self.url, self.method, self.cookie, self.ua, self.ct, self.SrcRequestHeaders)
         elif self.dataformat == 'JSON':
             for payload in RCEPayload_DNSLOG:
                 _postData = copy.copy(self.jsondata)
-                _postData[key] = _postData[key] + payload.format(Separator='${IFS', randStr=payload_randstr, DNSLogDomain=CWebScanSetting.dnslog_prefix + '.' + CWebScanSetting.log_suffix)
+                _postData[key] = str(_postData[key]) + payload.format(Separator='${IFS', randStr=payload_randstr, DNSLogDomain=CWebScanSetting.dnslog_prefix + '.' + CWebScanSetting.log_suffix)
                 res = self.reqSend(loc, json.dumps(_postData), self.url, self.method, self.cookie, self.ua, self.ct, self.SrcRequestHeaders)
         else:
             return False

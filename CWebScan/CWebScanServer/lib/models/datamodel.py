@@ -77,11 +77,10 @@ class data_clean_key(BaseModel):
 class ScanTask(BaseModel):
 	"""扫描任务"""
 	__tablename__ = 'scantask'
-	id = Column(Integer, primary_key=True)   
+	id = Column(Integer, primary_key=True)
 	dataid = Column(String(100)) # unique
+	netloc = Column(String(100))
 	scantype = Column(Integer)
-	# createtime = Column(DateTime, default=datetime.datetime.now)
-	# updatetime = Column(DateTime)
 	status = Column(Integer) # 任务状态
 	createtime = Column(DateTime, server_default=func.now(), comment='创建时间')
 	updatetime = Column(DateTime, server_default=func.now(), onupdate=func.now(), comment='修改时间')
@@ -91,14 +90,15 @@ class HostScan(BaseModel):
 	__tablename__ = 'hostscan'
 	id = Column(Integer, primary_key=True)
 	host = Column(String(100))
-	
-		
+
+
 class VulnData(BaseModel):
 	"""漏洞报告"""
 	__tablename__ = 'vulndata'
 	id = Column(Integer, primary_key=True)
 	dataid = Column(String(100))
 	scanid = Column(Integer)
+	netloc = Column(String(100))
 	vulntype = Column(Integer)
 	time = Column(DateTime, default=datetime.datetime.now)
 	status = Column(Integer)

@@ -129,6 +129,7 @@ class DistributeConsumer(ConsumerBase):
         save2scantask = ScanTask(
             dataid = data.saveid,
             scantype = vulntype,
+            netloc = data.netloc,
             status = ScanTaskStatus['running']
         )
         session = self.dbsession()
