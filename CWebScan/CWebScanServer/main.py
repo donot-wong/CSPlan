@@ -12,6 +12,7 @@ import pika
 import multiprocessing
 
 app = Flask(__name__)
+app.config['SECRET_KEY'] = "donot123!@#"
 
 # 初始化
 from lib.init import init

@@ -165,7 +165,7 @@ class SqliScan(ScanBase):
         if loc == 'params':
             for payload_idx in range(len(SQLiPayload_Sleep)):
                 _getData = copy.copy(self.getData)
-                _getData[key] = str(_getData[key]) + SQLiPayload_Sleep[payload_idx].format(sleep='sleep(3)')
+                _getData[key] = str(_getData[key]) + SQLiPayload_Sleep[payload_idx].format(sleep='sleep(2)')
                 res = self.reqSend(loc, _getData, self.url, self.method, self.cookie, self.ua, self.ct, self.SrcRequestHeaders)
                 self.sendreqCnt += 1
                 if res is None:
@@ -180,7 +180,7 @@ class SqliScan(ScanBase):
         elif self.dataformat == 'FORMDATA':
             for payload_idx in range(len(SQLiPayload_Sleep)):
                 _postData = copy.copy(self.postData)
-                _postData[key] = str(_postData[key]) + SQLiPayload_Sleep[payload_idx].format(sleep='sleep(3)')
+                _postData[key] = str(_postData[key]) + SQLiPayload_Sleep[payload_idx].format(sleep='sleep(2)')
                 res = self.reqSend(loc, _postData, self.url, self.method, self.cookie, self.ua, self.ct, self.SrcRequestHeaders)
                 self.sendreqCnt += 1
                 if  res is None:
@@ -226,7 +226,7 @@ class SqliScan(ScanBase):
                 res = self.reqSend(loc, _getData, self.url, self.method, self.cookie, self.ua, self.ct, self.SrcRequestHeaders)
                 self.sendreqCnt += 1
                 if res.elapsed.total_seconds() < max(MIN_VALID_DELAYED_RESPONSE, self.delayTimeJudgeStandard):
-                    _getData[key] = str(self.getData[key]) + SQLiPayload_Sleep[payload_idx].format(sleep='sleep(3)')
+                    _getData[key] = str(self.getData[key]) + SQLiPayload_Sleep[payload_idx].format(sleep='sleep(2)')
                     res = self.reqSend(loc, _getData, self.url, self.method, self.cookie, self.ua, self.ct, self.SrcRequestHeaders)
                     self.sendreqCnt += 1
                     if res.elapsed.total_seconds() >= max(MIN_VALID_DELAYED_RESPONSE, self.delayTimeJudgeStandard):
@@ -241,7 +241,7 @@ class SqliScan(ScanBase):
                 res = self.reqSend(loc, _postData, self.url, self.method, self.cookie, self.ua, self.ct, self.SrcRequestHeaders)
                 self.sendreqCnt += 1
                 if res.elapsed.total_seconds() < max(MIN_VALID_DELAYED_RESPONSE, self.delayTimeJudgeStandard):
-                    _postData[key] = str(self.postData[key]) + SQLiPayload_Sleep[payload_idx].format(sleep='sleep(3)')
+                    _postData[key] = str(self.postData[key]) + SQLiPayload_Sleep[payload_idx].format(sleep='sleep(2)')
                     res = self.reqSend(loc, _postData, self.url,self.method, self.cookie, self.ua, self.ct, self.SrcRequestHeaders)
                     self.sendreqCnt += 1
                     if res.elapsed.total_seconds() >= max(MIN_VALID_DELAYED_RESPONSE, self.delayTimeJudgeStandard):
@@ -256,7 +256,7 @@ class SqliScan(ScanBase):
                 res = self.reqSend(loc, json.dumps(_postData), self.url, self.method, self.cookie, self.ua, self.ct, self.SrcRequestHeaders)
                 self.sendreqCnt += 1
                 if res.elapsed.total_seconds() <  max(MIN_VALID_DELAYED_RESPONSE, self.delayTimeJudgeStandard):
-                    _postData[key] = str(self.jsondata[key]) + SQLiPayload_Sleep[payload_idx].format(sleep='sleep(3)')
+                    _postData[key] = str(self.jsondata[key]) + SQLiPayload_Sleep[payload_idx].format(sleep='sleep(2)')
                     res = self.reqSend(loc, json.dumps(_postData), self.url, self.method, self.cookie, self.ua, self.ct, self.SrcRequestHeaders)
                     self.sendreqCnt += 1
                     if res.elapsed.total_seconds() >= max(MIN_VALID_DELAYED_RESPONSE, self.delayTimeJudgeStandard):
