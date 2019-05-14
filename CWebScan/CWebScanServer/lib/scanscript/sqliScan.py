@@ -19,13 +19,13 @@ from sqlalchemy.orm import sessionmaker
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__)))))
 from lib.rabbitqueue.consumerBase import ConsumerBase
-from utils.globalParam import ScanLogger,  BlackParamName, ScanTaskStatus, VulnType, AlertTemplateDict, CalcAverageTimeLimitCnt
+from utils.globalParam import ScanLogger,  BlackParamName, BLACK_COOKIE_KEY_LIST, ScanTaskStatus, VulnType, AlertTemplateDict, CalcAverageTimeLimitCnt
 from utils.globalParam import TIME_STDEV_COEFF, MIN_VALID_DELAYED_RESPONSE
 from utils.DataStructure import RequestData
 from lib.scanscript.sqliscan.errorbased import plainArray, regexArray
 from lib.models.datamodel import ScanTask, VulnData
 from utils.commonFunc import send2slack
-from utils.payloads import SQLiPayload_Sleep, SQLiPayload_Sleep_Normal
+from utils.payloads import SQLiPayload_Sleep, SQLiPayload_Sleep_Normal, SQLiPayload_ErrorBased
 from lib.scanscript.scanBase import ScanBase
 
 
@@ -120,11 +120,33 @@ class SqliScan(ScanBase):
         else:
             pass
 
-
+        if len(self.cookie) > 0:
+            for key in self.cookieDict:
+                if key != 'other':
+                    for black_cookie_key in BLACK_COOKIE_KEY_LIST:
+                        if black_cookie_key.lower() in key:
+                            flag = True
+                            break
+                    if flag:
+                        continue
+                    else:
+                        isVuln = self.headerSqliScan(key)
+                        if isVuln:
+                            self.saveScanResult(VulnType['sqli'], 'Cookie: ' + key)
+                            continue
         # referer cookie header注入扫描
 
 
         self.changeScanStatus()
+
+    def headerSqliScan(self, key):
+        _cookie = copy.copy(self.cookieDict)
+        for error_payload in SQLiPayload_ErrorBased:
+            _cookie[key] = _cookie[key] + error_payload
+            cookieStr = self.cookieDict2Str(_cookie)
+            _header = self.SrcRequestHeaders['Cookie'] = 
+            res = self.reqSend('header',header=)
+
 
     def errorbased(self, loc, key):
         '''

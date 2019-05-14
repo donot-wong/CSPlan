@@ -15,7 +15,7 @@ ScanLogger = logging.getLogger('CWebScanServer')
 # 黑名单参数名
 BlackParamName = ['_t', '_csrf', 't', '_p', 'csrf', 'csrftoken', 'nonce', 'timestamp', 'submit', 'Submit', '']
 IGNORE_PARAMETERS = ("__VIEWSTATE", "__VIEWSTATEENCRYPTED", "__VIEWSTATEGENERATOR", "__EVENTARGUMENT", "__EVENTTARGET", "__EVENTVALIDATION", "ASPSESSIONID", "ASP.NET_SESSIONID", "JSESSIONID", "CFID", "CFTOKEN")
-
+BLACK_COOKIE_KEY_LIST = ['Domain', 'Path', 'Expires', 'JSESSIONID', 'PHPSESSID', 'sess', 'session', 'csrf', 'secure', '__utma', '__utmz', 'UM_', 'CNZZ', 'token', 'time']
 
 CWebScanSetting = AttribDict()
 CWebScanSetting.log_suffix = 'sqvds.cn'

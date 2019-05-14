@@ -51,6 +51,20 @@ class ScanBase(object):
             self.ctl = 0
             self.NoLength = True
         self.respTimeList = []
+        self.cookie2Dict()
+
+    def cookie2Dict(self):
+        self.cookieDict = dict()
+        self.cookieDict['other'] = []
+
+        cookieList = self.cookie.split('; ')
+        for i in cookieList:
+            if '=' in i:
+                cookie_key, cookie_value = i.split('=')
+                self.cookieDict[cookie_key] = cookie_value
+            else:
+                self.cookieDict['other'].append(i)
+
 
     def run(self):
         self.init()
@@ -177,7 +191,7 @@ class ScanBase(object):
         return resp.elapsed.total_seconds(), resp.headers
 
 
-    def reqSend(self, loc, data, url, method, cookie, ua, ct, header):
+    def reqSend(self, loc, data=self.postData, url=self.url, method=self.method, cookie=self.cookie, ua=self.ua, ct=self.ct, header=self.SrcRequestHeaders):
         s = Session()
         if loc == 'params' and method == 'GET':
             req = Request(
@@ -202,7 +216,15 @@ class ScanBase(object):
                 data = self.postData,
                 headers = header
             )
-        else:
+        elif loc == 'header':
+            req = Request(
+                self.method,
+                self.url,
+                params = self.getData,
+                data = self.postData,
+                headers = header
+            )
+        else:   
             ScanLogger.warning('Can not handle this request\'s method: %s' % self.method)
             return None
         prepped = s.prepare_request(req)
@@ -225,6 +247,14 @@ class ScanBase(object):
             pass
         # return JSONLikeData
         # return XMLLikeData
+    def cookieDict2Str(self, cookieDict):
+        cookieStr = ''
+        for key in cookieDict:
+            if key == 'other':
+                cookieStr = cookieStr + '; '.join(cookieDict['other'])
+            else:
+                cookieStr = cookieStr + '; ' + key + '=' + cookieDict[key]
+        return cookieStr
 
 
 def main():
