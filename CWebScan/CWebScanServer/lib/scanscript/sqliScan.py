@@ -170,6 +170,7 @@ class SqliScan(ScanBase):
                 self.sendreqCnt += 1
                 if res is None:
                     continue
+                # print('一次时间延迟检测： %s' % res.elapsed.total_seconds())
                 if res.elapsed.total_seconds() >= max(MIN_VALID_DELAYED_RESPONSE, self.delayTimeJudgeStandard):
                     if self.twiceCheckForTimeBased(loc, key, payload_idx, res.elapsed):
                         return True
@@ -222,13 +223,16 @@ class SqliScan(ScanBase):
         else:
             if loc == 'params':
                 _getData = copy.copy(self.getData)
+                # 进行一次不发生时间延迟payload检测
                 _getData[key] = str(_getData[key]) + SQLiPayload_Sleep_Normal[payload_idx]
                 res = self.reqSend(loc, _getData, self.url, self.method, self.cookie, self.ua, self.ct, self.SrcRequestHeaders)
                 self.sendreqCnt += 1
                 if res.elapsed.total_seconds() < max(MIN_VALID_DELAYED_RESPONSE, self.delayTimeJudgeStandard):
+                    # 进行一次时间延迟注入payload检测
                     _getData[key] = str(self.getData[key]) + SQLiPayload_Sleep[payload_idx].format(sleep='sleep(2)')
                     res = self.reqSend(loc, _getData, self.url, self.method, self.cookie, self.ua, self.ct, self.SrcRequestHeaders)
                     self.sendreqCnt += 1
+                    # print('二次检测响应时间： %s' % res.elapsed.total_seconds())
                     if res.elapsed.total_seconds() >= max(MIN_VALID_DELAYED_RESPONSE, self.delayTimeJudgeStandard):
                         return True
                     else:
@@ -279,8 +283,8 @@ class SqliScan(ScanBase):
             if ela != 0 and headers is not None:
                 self.respTimeList.append(ela)
             if cnt > 20:
-                return False
-
+                break
+        # print(self.respTimeList)
         min_resp_time = min(self.respTimeList)
         average_resp_time = sum(self.respTimeList) / len(self.respTimeList)
         _ = 0
@@ -288,6 +292,7 @@ class SqliScan(ScanBase):
             _ += (i - average_resp_time)**2
         deviation = (_ / (len(self.respTimeList) - 1)) ** 0.5
         self.delayTimeJudgeStandard = average_resp_time + TIME_STDEV_COEFF * deviation
+        # print('时间延时基准计算完成: %s' % self.delayTimeJudgeStandard)
         return True
 
 
