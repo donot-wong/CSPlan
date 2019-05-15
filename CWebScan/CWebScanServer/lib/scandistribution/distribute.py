@@ -55,6 +55,7 @@ class DistributeConsumer(ConsumerBase):
             # scanList.append('filescan')
             pass
         if data.dataformat == 'ALLNO':
+            scanList.append('sqli') # header 
             # self.acknowledge_message(basic_deliver.delivery_tag)
             pass
             # 没有query/body的情况
@@ -91,6 +92,7 @@ class DistributeConsumer(ConsumerBase):
                 scanList.append('rce')
             else:
                 # self.acknowledge_message(basic_deliver.delivery_tag)
+
                 pass
             # 注入
             # RCE

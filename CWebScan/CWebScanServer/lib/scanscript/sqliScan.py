@@ -19,7 +19,7 @@ from sqlalchemy.orm import sessionmaker
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__)))))
 from lib.rabbitqueue.consumerBase import ConsumerBase
-from utils.globalParam import ScanLogger,  BlackParamName, BLACK_COOKIE_KEY_LIST, ScanTaskStatus, VulnType, AlertTemplateDict, CalcAverageTimeLimitCnt
+from utils.globalParam import ScanLogger,  BlackParamName, BLACK_COOKIE_KEY_LIST, BLACK_HTTP_HEADER_KEY_LIST, ScanTaskStatus, VulnType, AlertTemplateDict, CalcAverageTimeLimitCnt
 from utils.globalParam import TIME_STDEV_COEFF, MIN_VALID_DELAYED_RESPONSE
 from utils.DataStructure import RequestData
 from lib.scanscript.sqliscan.errorbased import plainArray, regexArray
@@ -120,9 +120,16 @@ class SqliScan(ScanBase):
         else:
             pass
 
+        # referer cookie header注入扫描
+        self.headerScan()
+
+        self.changeScanStatus()
+
+    def headerScan(self):
         if len(self.cookie) > 0:
             for key in self.cookieDict:
                 if key != 'other':
+                    flag = False
                     for black_cookie_key in BLACK_COOKIE_KEY_LIST:
                         if black_cookie_key.lower() in key:
                             flag = True
@@ -130,22 +137,43 @@ class SqliScan(ScanBase):
                     if flag:
                         continue
                     else:
-                        isVuln = self.headerSqliScan(key)
-                        if isVuln:
-                            self.saveScanResult(VulnType['sqli'], 'Cookie: ' + key)
+                        if self.errorbased('header-cookie', key):
+                            self.saveScanResult(VulnType['sqli-error'], 'Cookie: ' + key)
+                        elif self.timebased('header-cookie', key):
+                            self.saveScanResult(VulnType['sqli-time'], 'Cookie: ' + key)
+                        else:
                             continue
-        # referer cookie header注入扫描
+                else:
+                    continue
+        else:
+            pass
 
+        if 'Referer' in self.SrcRequestHeaders:
+            if self.errorbased('header', 'Referer'):
+                self.saveScanResult(VulnType['sqli-error'], 'Referer')
+            elif self.timebased('header', 'Referer'):
+                self.saveScanResult(VulnType['sqli-time'], 'Referer')
+            else:
+                pass
+        if 'User-Agent' in self.SrcRequestHeaders:
+            if self.errorbased('header', 'User-Agent'):
+                self.saveScanResult(VulnType['sqli-error'], 'User-Agent')
+            elif self.timebased('header', 'User-Agent'):
+                self.saveScanResult(VulnType['sqli-time'], 'User-Agent')
+            else:
+                pass
 
-        self.changeScanStatus()
-
-    def headerSqliScan(self, key):
-        _cookie = copy.copy(self.cookieDict)
-        for error_payload in SQLiPayload_ErrorBased:
-            _cookie[key] = _cookie[key] + error_payload
-            cookieStr = self.cookieDict2Str(_cookie)
-            _header = self.SrcRequestHeaders['Cookie'] = 
-            res = self.reqSend('header',header=)
+        # other header
+        for header_key in self.SrcRequestHeaders:
+            if header_key.lower() in BLACK_HTTP_HEADER_KEY_LIST:
+                pass
+            else:
+                if self.errorbased('header', header_key):
+                    self.saveScanResult(VulnType['sqli-error'], 'Header: ' + header_key)
+                elif self.timebased('header', header_key):
+                    self.saveScanResult(VulnType['sqli-time'], 'Header: ' + header_key)
+                else:
+                    pass
 
 
     def errorbased(self, loc, key):
@@ -154,25 +182,50 @@ class SqliScan(ScanBase):
         '''
         if loc == 'params':
             _getData = copy.copy(self.getData)
-            _getData[key] = str(_getData[key]) + '\'"'
-            res = self.reqSend(loc, _getData, self.url, self.method, self.cookie, self.ua, self.ct, self.SrcRequestHeaders)
-            self.sendreqCnt += 1
-            return self.checkIsErrorBaseSqli(res)
-        elif self.dataformat == 'FORMDATA':
+            for error_payload in SQLiPayload_ErrorBased:
+                _getData[key] = str(self.getData[key]) + error_payload
+                res = self.reqSend(loc, _getData, self.url, self.method, self.cookie, self.ua, self.ct, self.SrcRequestHeaders)
+                self.sendreqCnt += 1
+                if self.checkIsErrorBaseSqli(res):
+                    return True
+        elif loc == 'data' and self.dataformat == 'FORMDATA':
             _postData = copy.copy(self.postData)
-            _postData[key] = str(_postData[key]) + '\'"'
-            res = self.reqSend(loc, _postData, self.url, self.method, self.cookie, self.ua, self.ct, self.SrcRequestHeaders)
-            self.sendreqCnt += 1
-            return self.checkIsErrorBaseSqli(res)
-        elif self.dataformat == 'JSON':
+            for error_payload in SQLiPayload_ErrorBased:
+                _postData[key] = str(self.postData[key]) + error_payload
+                res = self.reqSend(loc, _postData, self.url, self.method, self.cookie, self.ua, self.ct, self.SrcRequestHeaders)
+                self.sendreqCnt += 1
+                if self.checkIsErrorBaseSqli(res):
+                    return True
+        elif loc == 'data' and self.dataformat == 'JSON':
             _postData = copy.copy(self.jsondata)
-            _postData[key] = str(_postData[key]) + '\'"'
-            res = self.reqSend(loc, json.dumps(_postData), self.url, self.method, self.cookie, self.ua, self.ct, self.SrcRequestHeaders)
-            self.sendreqCnt += 1
-            return self.checkIsErrorBaseSqli(res)
+            for error_payload in SQLiPayload_ErrorBased:
+                _postData[key] = str(self.jsondata[key]) + error_payload
+                res = self.reqSend(loc, json.dumps(_postData), self.url, self.method, self.cookie, self.ua, self.ct, self.SrcRequestHeaders)
+                self.sendreqCnt += 1
+                if self.checkIsErrorBaseSqli(res):
+                    return True
+        elif loc == 'header-cookie':
+            _cookie = copy.copy(self.cookieDict)
+            _header = copy.copy(self.SrcRequestHeaders)
+            for error_payload in SQLiPayload_ErrorBased:
+                _cookie[key] = self.cookieDict[key] + error_payload
+                _header['Cookie'] = self.cookieDict2Str(_cookie)
+                res = self.reqSend('header', header=_header, cookie={})
+                self.sendreqCnt += 1
+                if self.checkIsErrorBaseSqli(res):
+                    return True
+        elif loc == 'header':
+            _header = copy.copy(self.SrcRequestHeaders)
+            for error_payload in SQLiPayload_ErrorBased:
+                _header[key] = self.SrcRequestHeaders[key] + error_payload
+                res = self.reqSend('header', header=_header)
+                self.sendreqCnt += 1
+                if self.checkIsErrorBaseSqli(res):
+                    return True
         else:
             ScanLogger.warning('Can not handle this request\'s method: %s' % self.method)
             return False
+        return False
 
     def timebased(self, loc, key):
         '''
@@ -185,9 +238,9 @@ class SqliScan(ScanBase):
         else:
             return False
         if loc == 'params':
+            _getData = copy.copy(self.getData)
             for payload_idx in range(len(SQLiPayload_Sleep)):
-                _getData = copy.copy(self.getData)
-                _getData[key] = str(_getData[key]) + SQLiPayload_Sleep[payload_idx].format(sleep='sleep(2)')
+                _getData[key] = str(self.getData[key]) + SQLiPayload_Sleep[payload_idx].format(sleep='sleep(2)')
                 res = self.reqSend(loc, _getData, self.url, self.method, self.cookie, self.ua, self.ct, self.SrcRequestHeaders)
                 self.sendreqCnt += 1
                 if res is None:
@@ -200,10 +253,10 @@ class SqliScan(ScanBase):
                         continue
                 else:
                     continue
-        elif self.dataformat == 'FORMDATA':
+        elif loc== 'data' and self.dataformat == 'FORMDATA':
+            _postData = copy.copy(self.postData)
             for payload_idx in range(len(SQLiPayload_Sleep)):
-                _postData = copy.copy(self.postData)
-                _postData[key] = str(_postData[key]) + SQLiPayload_Sleep[payload_idx].format(sleep='sleep(2)')
+                _postData[key] = str(self.postData[key]) + SQLiPayload_Sleep[payload_idx].format(sleep='sleep(2)')
                 res = self.reqSend(loc, _postData, self.url, self.method, self.cookie, self.ua, self.ct, self.SrcRequestHeaders)
                 self.sendreqCnt += 1
                 if  res is None:
@@ -215,10 +268,10 @@ class SqliScan(ScanBase):
                         continue
                 else:
                     continue
-        elif self.dataformat == 'JSON':
+        elif loc == 'data' and self.dataformat == 'JSON':
+            _postData = copy.copy(self.jsondata)
             for payload_idx in range(len(SQLiPayload_Sleep)):
-                _postData = copy.copy(self.jsondata)
-                _postData[key] = str(_postData[key]) + SQLiPayload_Sleep[payload_idx].format(sleep='sleep(2)')
+                _postData[key] = str(self.jsondata[key]) + SQLiPayload_Sleep[payload_idx].format(sleep='sleep(2)')
                 res = self.reqSend(loc, json.dumps(_postData), self.url, self.method, self.cookie, self.ua, self.ct, self.SrcRequestHeaders)
                 self.sendreqCnt += 1
                 if res is None:
@@ -230,9 +283,42 @@ class SqliScan(ScanBase):
                         continue
                 else:
                     continue
+        elif loc == 'header-cookie':
+            _cookie = copy.copy(self.cookieDict)
+            _header = copy.copy(self.SrcRequestHeaders)
+            for payload_idx in range(len(SQLiPayload_Sleep)):
+                _cookie[key] = self.cookieDict[key] + SQLiPayload_Sleep[payload_idx].format(sleep='sleep(2)')
+                _header['Cookie'] = self.cookieDict2Str(_cookie)
+                res = self.reqSend('header', header=_header, cookie={})
+                self.sendreqCnt += 1
+                if res is None:
+                    continue
+                if res.elapsed.total_seconds() > max(MIN_VALID_DELAYED_RESPONSE, self.delayTimeJudgeStandard):
+                    if self.twiceCheckForTimeBased(loc, key, payload_idx, res.elapsed.total_seconds()):
+                        return True
+                    else:
+                        return False
+                else:
+                    continue
+        elif loc == 'header':
+            _header = copy.copy(self.SrcRequestHeaders)
+            for payload_idx in range(len(SQLiPayload_Sleep)):
+                _header[key] = self.SrcRequestHeaders[key] + SQLiPayload_Sleep[payload_idx].format(sleep='sleep(2)')
+                res = self.reqSend('header', header=_header)
+                self.sendreqCnt += 1
+                if res is None:
+                    continue
+                if res.elapsed.total_seconds() > max(MIN_VALID_DELAYED_RESPONSE, self.delayTimeJudgeStandard):
+                    if self.twiceCheckForTimeBased(loc, key, payload_idx, res.elapsed, total_seconds()):
+                        return True
+                    else:
+                        return False
+                else:
+                    continue
         else:
             ScanLogger.warning('Can not handle this request\'s method: %s' % self.method)
             return False
+        return False
 
     def twiceCheckForTimeBased(self, loc, key, payload_idx, onceela):
         '''
@@ -246,7 +332,7 @@ class SqliScan(ScanBase):
             if loc == 'params':
                 _getData = copy.copy(self.getData)
                 # 进行一次不发生时间延迟payload检测
-                _getData[key] = str(_getData[key]) + SQLiPayload_Sleep_Normal[payload_idx]
+                _getData[key] = str(self.getData[key]) + SQLiPayload_Sleep_Normal[payload_idx]
                 res = self.reqSend(loc, _getData, self.url, self.method, self.cookie, self.ua, self.ct, self.SrcRequestHeaders)
                 self.sendreqCnt += 1
                 if res.elapsed.total_seconds() < max(MIN_VALID_DELAYED_RESPONSE, self.delayTimeJudgeStandard):
@@ -261,9 +347,9 @@ class SqliScan(ScanBase):
                         return False
                 else:
                     return False
-            elif self.dataformat == 'FORMDATA':
+            elif loc == 'data' and self.dataformat == 'FORMDATA':
                 _postData = copy.copy(self.postData)
-                _postData[key] = str(_postData[key]) + SQLiPayload_Sleep_Normal[payload_idx]
+                _postData[key] = str(self.postData[key]) + SQLiPayload_Sleep_Normal[payload_idx]
                 res = self.reqSend(loc, _postData, self.url, self.method, self.cookie, self.ua, self.ct, self.SrcRequestHeaders)
                 self.sendreqCnt += 1
                 if res.elapsed.total_seconds() < max(MIN_VALID_DELAYED_RESPONSE, self.delayTimeJudgeStandard):
@@ -276,9 +362,9 @@ class SqliScan(ScanBase):
                         return False
                 else:
                     return False
-            elif self.dataformat == 'JSON':
+            elif loc == 'data' and self.dataformat == 'JSON':
                 _postData = copy.copy(self.jsondata)
-                _postData[key] = str(_postData[key]) + SQLiPayload_Sleep_Normal[payload_idx]
+                _postData[key] = str(self.jsondata[key]) + SQLiPayload_Sleep_Normal[payload_idx]
                 res = self.reqSend(loc, json.dumps(_postData), self.url, self.method, self.cookie, self.ua, self.ct, self.SrcRequestHeaders)
                 self.sendreqCnt += 1
                 if res.elapsed.total_seconds() <  max(MIN_VALID_DELAYED_RESPONSE, self.delayTimeJudgeStandard):
@@ -291,8 +377,40 @@ class SqliScan(ScanBase):
                         return False
                 else:
                     return False
+            elif loc == 'header-cookie':
+                _cookie = copy.copy(self.cookie)
+                _header = copy.copy(self.SrcRequestHeaders)
+                _cookie[key] = self.cookie[key] + SQLiPayload_Sleep_Normal[payload_idx]
+                _header['Cookie'] = self.cookieDict2Str(_cookie)
+                res = self.reqSend('header', header=_header, cookie={})
+                self.sendreqCnt += 1
+                if res.elapsed.total_seconds() < max(MIN_VALID_DELAYED_RESPONSE, self.delayTimeJudgeStandard):
+                    _cookie[key] = self.cookie[key] + SQLiPayload_Sleep[payload_idx].format(sleep='sleep(2)')
+                    _header['Cookie'] = self.cookieDict2Str(_cookie)
+                    res = self.reqSend('header', header=_header, cookie={})
+                    self.sendreqCnt += 1
+                    if res.elapsed.total_seconds() >= max(MIN_VALID_DELAYED_RESPONSE, self.delayTimeJudgeStandard):
+                        return True
+                    else:
+                        return False
+                else:
+                    return False
+            elif loc == 'header':
+                _header = copy.copy(self.SrcRequestHeaders)
+                _header[key] = self.SrcRequestHeaders[key] + SQLiPayload_Sleep_Normal[payload_idx]
+                res = self.reqSend(loc, header=_header)
+                if res.elapsed.total_seconds() < max(MIN_VALID_DELAYED_RESPONSE, self.delayTimeJudgeStandard):
+                    _header[key] = self.SrcRequestHeaders[key] + SQLiPayload_Sleep[payload_idx].format(sleep='sleep(2)')
+                    res = self.reqSend(loc, header=_header)
+                    if res.elapsed.total_seconds() >= max(MIN_VALID_DELAYED_RESPONSE, self.delayTimeJudgeStandard):
+                        return True
+                    else:
+                        return False
+                else:
+                    return False
             else:
                 return False
+        return False
 
     def delayMinTimeCalc(self):
         '''

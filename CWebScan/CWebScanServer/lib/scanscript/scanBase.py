@@ -60,11 +60,16 @@ class ScanBase(object):
         cookieList = self.cookie.split('; ')
         for i in cookieList:
             if '=' in i:
-                cookie_key, cookie_value = i.split('=')
+                cookieSplit = i.split('=')
+                if len(cookieSplit) > 2:
+                    cookie_key = cookieSplit[0]
+                    cookie_value = '='.join(cookieSplit[1:])
+                else:
+                    cookie_key = cookieSplit[0]
+                    cookie_value = cookieSplit[1]
                 self.cookieDict[cookie_key] = cookie_value
             else:
                 self.cookieDict['other'].append(i)
-
 
     def run(self):
         self.init()
@@ -191,8 +196,31 @@ class ScanBase(object):
         return resp.elapsed.total_seconds(), resp.headers
 
 
-    def reqSend(self, loc, data=self.postData, url=self.url, method=self.method, cookie=self.cookie, ua=self.ua, ct=self.ct, header=self.SrcRequestHeaders):
+    def reqSend(self, loc, data=None, url=None, method=None, cookie=None, ua=None, ct=None, header=None):
+        if data is None:
+            data = self.postData
+        if url is None:
+            url = self.url
+        if method is None:
+            method = self.method
+        if cookie is None:
+            cookie = self.cookie
+        if ua is None:
+            ua = self.ua
+        if ct is None:
+            ct = self.ct
+        if header is None:
+            header = self.SrcRequestHeaders
         s = Session()
+        if 'cookie' in header and 'Cookie' in header:
+            header['cookie'] = header['Cookie']
+            header.pop('Cookie')
+        if 'referer' in header and 'Referer' in header:
+            header['referer'] = header['Referer']
+            header.pop('Referer')
+        if 'user-agent' in header and 'User-Agent' in header:
+            header['user-agent'] = header['User-Agent']
+            header.pop('User-Agent')
         if loc == 'params' and method == 'GET':
             req = Request(
                 method, 
@@ -254,6 +282,8 @@ class ScanBase(object):
                 cookieStr = cookieStr + '; '.join(cookieDict['other'])
             else:
                 cookieStr = cookieStr + '; ' + key + '=' + cookieDict[key]
+        if cookieStr.startswith('; '):
+            cookieStr = cookieStr[2:]
         return cookieStr
 
 

@@ -71,7 +71,7 @@ function getReqAndsendRespHeader2Server(InitId, requestId, resIp, statusCode, re
 	// console.log(reqData);
 	sessionStorage.removeItem(saveKey);
 	// console.log(reqData);
-	if (reqData['url'].indexOf('120.24.224.32') == -1) {
+	if (reqData['url'].indexOf('120.24.224.32') == -1 && reqData['url'].indexOf('twitter.com') == -1) {
 		$.ajax({
 			type: "POST",
 			url: CmonitorServer + "Receive?InitId=" + InitId + "&requestId=" + requestId,

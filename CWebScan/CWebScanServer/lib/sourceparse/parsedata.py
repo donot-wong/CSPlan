@@ -64,9 +64,11 @@ class ParseConsumer(ConsumerBase):
             contentType = ''
 
         # print(reqHeaders)
-        try:
+        if 'Cookie' in reqHeaders:
             cookie = reqHeaders['Cookie']
-        except Exception as e:
+        elif 'cookie' in reqHeaders:
+            cookie = reqHeaders['cookie']
+        else:
             cookie = ''
         # Referer Origin User-Agent Accept-Language Accept-Encoding Accept
         # 原始数据存储
@@ -206,8 +208,8 @@ class ParseConsumer(ConsumerBase):
             body = parse.quote(json.dumps(res.postData)),
             ct = res.ct,
             cookie = res.cookie,
-            reqheaders = parse.quote(str(res.reqHeaders)),
-            resheaders = parse.quote(str(res.resHeaders)),
+            reqheaders = parse.quote(json.dumps(res.reqHeaders)),
+            resheaders = parse.quote(json.dumps(res.resHeaders)),
             statuscode = res.statuscode
         )
 
