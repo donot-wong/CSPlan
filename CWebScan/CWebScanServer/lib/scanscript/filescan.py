@@ -19,13 +19,13 @@ from sqlalchemy.orm import sessionmaker
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__)))))
 from lib.rabbitqueue.consumerBase import ConsumerBase
-from utils.globalParam import ScanLogger,  BlackParamName, BLACK_COOKIE_KEY_LIST, BLACK_HTTP_HEADER_KEY_LIST, ScanTaskStatus, VulnType, AlertTemplateDict, CalcAverageTimeLimitCnt
+from utils.globalParam import ScanLogger, ScanTaskStatus, VulnType, AlertTemplateDict
 from utils.globalParam import TIME_STDEV_COEFF, MIN_VALID_DELAYED_RESPONSE
 from utils.DataStructure import RequestData
-from lib.scanscript.sqliscan.errorbased import plainArray, regexArray
 from lib.models.datamodel import ScanTask, VulnData
 from utils.commonFunc import send2slack
 from lib.scanscript.scanBase import ScanBase
+from utils.payloads import FILE_SCAN_PAYLODS_TXT, FILE_SCAN_PAYLODS_PHP, FILE_SCAN_PAYLODS_ASP, FILE_SCAN_PAYLODS_JSP, FILE_SCAN_PAYLODS_COMPRESSION, FILE_SCAN_PAYLODS_LEAK, FILE_SCAN_PAYLODS_LOG, FILE_SCAN_PAYLODS_SQL
 
 class FileScan(ScanBase):
     SrcRequest = None
@@ -34,7 +34,18 @@ class FileScan(ScanBase):
 
     def run():
     	pass
-		
+
+    def page_404(self):
+        # 生成404页面特征
+        feature_loc = ['statuscode', 'content']
+        res = self.reqSend('empty', url = self.SrcRequest.scheme + '://' + self.SrcRequest.netloc + '/this_is_a_not_exist_path_test/no_exist')
+        if res.statuscode >= 404:
+            return 'statuscode', res.statuscode
+        else:
+            return 'content', res.text
+
+    def cms_identify(self):
+        pass
 
 
 class FileScanConsumer(ConsumerBase):

@@ -198,7 +198,8 @@ class ScanBase(object):
 
     def reqSend(self, loc, data=None, url=None, method=None, cookie=None, ua=None, ct=None, header=None):
         if data is None:
-            data = self.postData
+            getData = self.getData
+            postData = self.postData
         if url is None:
             url = self.url
         if method is None:
@@ -248,8 +249,16 @@ class ScanBase(object):
             req = Request(
                 self.method,
                 self.url,
-                params = self.getData,
-                data = self.postData,
+                params = getData,
+                data = postData,
+                headers = header
+            )
+        elif loc = 'empty':
+            req = Request(
+                method,
+                url,
+                params = getData,
+                data = postData,
                 headers = header
             )
         else:   
