@@ -50,9 +50,9 @@ class DistributeConsumer(ConsumerBase):
             pass
         else:
             # 进行端口/目录/根目录备份文件 扫描
-            # scanList.append('hostscan')
-            # scanList.append('dirscan')
-            # scanList.append('filescan')
+            # scanList.append('host')
+            # scanList.append('dir')
+            # scanList.append('file')
             pass
         if data.dataformat == 'ALLNO':
             scanList.append('sqli') # header 
@@ -103,7 +103,7 @@ class DistributeConsumer(ConsumerBase):
         for i in scanList:
             scanid = self.save2db(data, ScanTaskVulnType[i])
             data.scanid = scanid
-            self.transQueue.put({'routing_key': i+'scan.key', 'body': pickle.dumps(data)})
+            self.transQueue.put({'routing_key': i + 'scan.key', 'body': pickle.dumps(data)})
         self.acknowledge_message(basic_deliver.delivery_tag)
 
     def hostScanCheck(self, netloc):
