@@ -38,14 +38,19 @@ class FileScan(ScanBase):
     def page_404(self):
         # 生成404页面特征
         feature_loc = ['statuscode', 'content']
-        res = self.reqSend('empty', url = self.SrcRequest.scheme + '://' + self.SrcRequest.netloc + '/this_is_a_not_exist_path_test/no_exist')
+        res = self.reqSend('empty', url = self.SrcRequest.scheme + '://' + self.SrcRequest.netloc + '/this_is_a_not_exist_file.txt')
         if res.statuscode >= 404:
             return 'statuscode', res.statuscode
         else:
             return 'content', res.text
 
-    def cms_identify(self):
-        pass
+    def dir404(self):
+        # feature_loc = ['statuscode']
+        res = self.reqSend('empty', url=self.SrcRequest.scheme + "://" + self.SrcRequest.netloc + "/this_is_a_not_exist_path/")
+        if res.statuscode >= 404:
+            return 'statuscode', res.statuscode
+        else:
+            return 'content', res.text
 
 
 class FileScanConsumer(ConsumerBase):

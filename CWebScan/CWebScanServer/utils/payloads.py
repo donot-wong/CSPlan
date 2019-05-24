@@ -271,5 +271,6 @@ FILE_SCAN_PAYLODS_LOG = [
 FILE_SCAN_PAYLODS_LEAK = [
 	'.git/config',
 	'.svn/entries',
-	'.svn/wc.db'
+	'.svn/wc.db',
+	'idea/workspace.xml'
 ]
