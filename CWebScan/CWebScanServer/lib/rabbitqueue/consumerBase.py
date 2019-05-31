@@ -10,6 +10,10 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath
 from utils.globalParam import ScanLogger
 from utils.DataStructure import RequestData
 
+
+'''
+消费者模型
+'''
 class ConsumerBase(object):
     """This is an example consumer that will handle unexpected interactions
     with RabbitMQ such as channel and connection closures.
