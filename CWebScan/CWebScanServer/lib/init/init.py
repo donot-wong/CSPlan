@@ -12,7 +12,7 @@ from lib.sourceparse.parsedata import parseMain, trans2distribute
 from lib.scandistribution.distribute import distributeMain, distributeTrans
 from lib.scanscript.sqliScan import SqliScanMain
 from lib.scanscript.rceScan import RceScanMain
-from lib.scanscript.filescan import FileScanMain
+# from lib.scanscript.filescan import FileScanMain
 from utils.globalParam import ScanLogger, CWebScanSetting
 ## 服务端环境初始化
 
@@ -89,6 +89,6 @@ p.start()
 
 
 # file扫描子进程
-p = multiprocessing.Process(target=FileScanMain) 
-p.daemon = False
-p.start()
+# p = multiprocessing.Process(target=FileScanMain) 
+# p.daemon = False
+# p.start()

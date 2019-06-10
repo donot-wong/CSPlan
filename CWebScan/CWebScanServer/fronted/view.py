@@ -44,3 +44,16 @@ class VulnDataView(ModelView):
 	can_edit = True
 	column_searchable_list = ['scanid', 'netloc']
 	column_labels = dict(id='id',dataid='关联数据ID', netloc='所属域名', scanid='扫描任务ID', vulntype='漏洞类型', status='漏洞状态', paramname='参数名称', time='创建时间')
+
+class ConfigView(ModelView):
+	def get_query(self):
+		self.session.flush()
+		self.session.commit()
+		return super(ConfigView, self).get_query()
+	can_edit = True
+	# column_searchable_list = ['key', 'value']
+	column_labels = dict(id='id',key='配置名称', value='配置值')
+
+
+
+		

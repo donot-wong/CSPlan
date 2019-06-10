@@ -21,8 +21,8 @@ from lib.rabbitqueue.producerBase import PublisherBase
 trans2parseMainQueue = multiprocessing.Queue()
 from flask_admin import Admin
 from flask_admin.contrib.sqla import ModelView
-from fronted.view import RawDataView,CleanDataView,ScanTaskView,VulnDataView
-from lib.models.datamodel import data_raw, data_clean, ScanTask, VulnData
+from fronted.view import RawDataView,CleanDataView,ScanTaskView,VulnDataView,ConfigView
+from lib.models.datamodel import data_raw, data_clean, ScanTask, VulnData, Config
 from utils.globalParam import CWebScanSetting
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -34,6 +34,7 @@ admin.add_view(RawDataView(data_raw, dbsession(), name="原始数据"))
 admin.add_view(CleanDataView(data_clean, dbsession(), name="清洗后数据"))
 admin.add_view(ScanTaskView(ScanTask, dbsession(), name="扫描任务"))
 admin.add_view(VulnDataView(VulnData, dbsession(), name="漏洞发现"))
+admin.add_view(ConfigView(Config, dbsession(), name='系统配置'))
 
 def trans2parseMain(q):
     example = PublisherBase('amqp://guest:guest@localhost:5672/%2F?connection_attempts=3&heartbeat_interval=3600', 'parsesrcdata', 'parsesrcdata.source', q)

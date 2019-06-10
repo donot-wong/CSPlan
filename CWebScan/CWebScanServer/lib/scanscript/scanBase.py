@@ -36,7 +36,7 @@ class ScanBase(object):
         self.urlRaw = self.SrcRequest.url
         self.url = self.SrcRequest.scheme + '://' + self.SrcRequest.netloc + self.SrcRequest.path
         self.cookie = self.SrcRequest.cookie
-        self.ua = self.SrcRequest.reqHeaders['User-Agent']
+        
         self.getData = self.SrcRequest.getData
         self.postData = self.SrcRequest.postData
         self.method = self.SrcRequest.method
@@ -50,6 +50,13 @@ class ScanBase(object):
         else:
             self.ctl = 0
             self.NoLength = True
+
+        if 'User-Agent' in self.SrcRequest.reqHeaders:
+            self.ua = self.SrcRequest.reqHeaders['User-Agent']
+        elif 'user-agent' in self.SrcRequest.reqHeaders:
+            self.ua = self.SrcRequest.reqHeaders['user-agent']
+        else:
+            self.ua = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/74.0.3729.169 Safari/537.36'
         self.respTimeList = []
         self.cookie2Dict()
 
@@ -253,7 +260,7 @@ class ScanBase(object):
                 data = postData,
                 headers = header
             )
-        elif loc = 'empty':
+        elif loc == 'empty':
             req = Request(
                 method,
                 url,

@@ -309,7 +309,7 @@ class SqliScan(ScanBase):
                 if res is None:
                     continue
                 if res.elapsed.total_seconds() > max(MIN_VALID_DELAYED_RESPONSE, self.delayTimeJudgeStandard):
-                    if self.twiceCheckForTimeBased(loc, key, payload_idx, res.elapsed, total_seconds()):
+                    if self.twiceCheckForTimeBased(loc, key, payload_idx, res.elapsed.total_seconds()):
                         return True
                     else:
                         return False
@@ -378,14 +378,14 @@ class SqliScan(ScanBase):
                 else:
                     return False
             elif loc == 'header-cookie':
-                _cookie = copy.copy(self.cookie)
+                _cookie = copy.copy(self.cookieDict)
                 _header = copy.copy(self.SrcRequestHeaders)
-                _cookie[key] = self.cookie[key] + SQLiPayload_Sleep_Normal[payload_idx]
+                _cookie[key] = self.cookieDict[key] + SQLiPayload_Sleep_Normal[payload_idx]
                 _header['Cookie'] = self.cookieDict2Str(_cookie)
                 res = self.reqSend('header', header=_header, cookie={})
                 self.sendreqCnt += 1
                 if res.elapsed.total_seconds() < max(MIN_VALID_DELAYED_RESPONSE, self.delayTimeJudgeStandard):
-                    _cookie[key] = self.cookie[key] + SQLiPayload_Sleep[payload_idx].format(sleep='sleep(2)')
+                    _cookie[key] = self.cookieDict[key] + SQLiPayload_Sleep[payload_idx].format(sleep='sleep(2)')
                     _header['Cookie'] = self.cookieDict2Str(_cookie)
                     res = self.reqSend('header', header=_header, cookie={})
                     self.sendreqCnt += 1
@@ -425,13 +425,17 @@ class SqliScan(ScanBase):
             if cnt > 20:
                 break
         # print(self.respTimeList)
-        min_resp_time = min(self.respTimeList)
-        average_resp_time = sum(self.respTimeList) / len(self.respTimeList)
-        _ = 0
-        for i in self.respTimeList:
-            _ += (i - average_resp_time)**2
-        deviation = (_ / (len(self.respTimeList) - 1)) ** 0.5
-        self.delayTimeJudgeStandard = average_resp_time + TIME_STDEV_COEFF * deviation
+        if len(self.respTimeList) == 0:
+            # min_resp_time = 0
+            self.delayTimeJudgeStandard = 0
+        else:
+            # min_resp_time = min(self.respTimeList)
+            average_resp_time = sum(self.respTimeList) / len(self.respTimeList)
+            _ = 0
+            for i in self.respTimeList:
+                _ += (i - average_resp_time)**2
+            deviation = (_ / (len(self.respTimeList) - 1)) ** 0.5
+            self.delayTimeJudgeStandard = average_resp_time + TIME_STDEV_COEFF * deviation
         # print('时间延时基准计算完成: %s' % self.delayTimeJudgeStandard)
         return True
 

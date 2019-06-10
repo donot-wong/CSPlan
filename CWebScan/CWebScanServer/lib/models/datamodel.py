@@ -103,3 +103,10 @@ class VulnData(BaseModel):
 	time = Column(DateTime, default=datetime.datetime.now)
 	status = Column(Integer)
 	paramname = Column(String(100))
+
+class Config(BaseModel):
+	__tablename__ = 'config'
+	id = Column(Integer, primary_key=True)
+	key = Column(String(100))
+	value = Column(String(100))
+		
