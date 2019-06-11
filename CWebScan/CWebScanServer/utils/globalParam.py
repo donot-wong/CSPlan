@@ -13,7 +13,7 @@ CONTENT_TYPE = ['application/x-www-form-urlencoded', 'multipart/form-data', 'app
 ScanLogger = logging.getLogger('CWebScanServer')
 
 # 黑名单参数名
-BlackParamName = ['_t', '_csrf', 't', '_p', 'csrf', 'csrftoken', 'nonce', 'timestamp', 'submit', 'Submit', '']
+BlackParamName = ['_t', '_csrf', 't', '_p', 'csrf', 'csrftoken', 'nonce', 'timestamp', 'submit', 'Submit', '', 'token', 'sign', "__VIEWSTATE", "__VIEWSTATEENCRYPTED", "__VIEWSTATEGENERATOR", "__EVENTARGUMENT", "__EVENTTARGET", "__EVENTVALIDATION", "ASPSESSIONID", "ASP.NET_SESSIONID", "JSESSIONID", "CFID", "CFTOKEN"]
 IGNORE_PARAMETERS = ("__VIEWSTATE", "__VIEWSTATEENCRYPTED", "__VIEWSTATEGENERATOR", "__EVENTARGUMENT", "__EVENTTARGET", "__EVENTVALIDATION", "ASPSESSIONID", "ASP.NET_SESSIONID", "JSESSIONID", "CFID", "CFTOKEN")
 BLACK_COOKIE_KEY_LIST = ['Domain', 'Path', 'Expires', 'JSESSIONID', 'PHPSESSID', 'sess', 'session', 'csrf', 'secure', '__utma', '__utmz', 'UM_', 'CNZZ', 'token', 'time']
 BLACK_HTTP_HEADER_KEY_LIST = ['accept', 'accept-language', 'accept-encoding', 'cache-control', 'connection', 'cookie', 'referer', 'user-agent', 'pragma', 'upgrade-insecure-requests', 'content-security-policy', 'content-encoding', ':authority', ':method', ':path', ':scheme']

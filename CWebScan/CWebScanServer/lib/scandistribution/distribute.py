@@ -37,7 +37,7 @@ class DistributeConsumer(ConsumerBase):
         if isOk:
             pass
         else:
-            self.changeScanStatus(data.scanid)
+            # self.changeScanStatus(data.scanid)
             self.acknowledge_message(basic_deliver.delivery_tag)
             return
 
@@ -157,7 +157,7 @@ class DistributeConsumer(ConsumerBase):
             src_ctl = 0
             NoLength = True
         if NoLength:
-            return True, None
+            return False, None
         respLengthList = []
         for i in range(3):
             ela, headers = self.reqSendForRepeatCheck(data.url, data.method, data.postData, data.reqHeaders)

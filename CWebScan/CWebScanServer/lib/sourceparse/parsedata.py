@@ -73,6 +73,7 @@ class ParseConsumer(ConsumerBase):
         # Referer Origin User-Agent Accept-Language Accept-Encoding Accept
         # 原始数据存储
         # ...
+        # print(postDataJson['requestBody'])
         save2data_raw = data_raw(
             saveid = postDataJson['InitId'] + postDataJson['requestId'], 
             url = postDataJson['url'], 
@@ -146,6 +147,18 @@ class ParseConsumer(ConsumerBase):
             key2raw = ''
             for key,value in res.postData.items():
                 key2raw = key2raw + key
+            key2 = hashlib.md5(key2raw.encode('utf-8')).hexdigest()
+        elif res.dataformat == 'MULTIPART':
+            keytype = 1
+            key2raw = ''
+            # print(res.multi_normal_fields)
+            # print(res.multi_file_fields)
+            if len(res.multi_normal_fields) > 0:
+                for key, value in res.multi_normal_fields.items():
+                    key2raw = key2raw + key
+            if len(res.multi_file_fields) > 0:
+                for key, value in res.multi_file_fields.items():
+                    key2raw = key2raw + key
             key2 = hashlib.md5(key2raw.encode('utf-8')).hexdigest()
         elif res.dataformat == 'JSON':
             keytype = 1

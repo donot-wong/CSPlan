@@ -57,6 +57,7 @@ class ScanBase(object):
             self.ua = self.SrcRequest.reqHeaders['user-agent']
         else:
             self.ua = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/74.0.3729.169 Safari/537.36'
+
         self.respTimeList = []
         self.cookie2Dict()
 
@@ -202,6 +203,8 @@ class ScanBase(object):
             return 0, None
         return resp.elapsed.total_seconds(), resp.headers
 
+    def reqMultiSend(self, loc, data=None, file=None, url=None, method=None, cookie=None, ua=None, ct=None, header=None):
+        pass
 
     def reqSend(self, loc, data=None, url=None, method=None, cookie=None, ua=None, ct=None, header=None):
         if data is None:
