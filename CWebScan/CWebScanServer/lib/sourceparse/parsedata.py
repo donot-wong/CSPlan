@@ -326,9 +326,9 @@ class ParseConsumer(ConsumerBase):
             return True
 
 def parseMain(q):
-    engine = create_engine('mysql+pymysql://root:123456@127.0.0.1:3306/test', pool_size=20, pool_recycle=599, pool_timeout=30)
+    engine = create_engine(CWebScanSetting.MYSQL_URL, pool_size=20, pool_recycle=599, pool_timeout=30)
     DB_Session = sessionmaker(bind=engine)
-    parseCS = ParseConsumer('amqp://guest:guest@localhost:5672/%2F', 'parsesrcdata', 'parsesrcdata.source', q, DB_Session)
+    parseCS = ParseConsumer(CWebScanSetting.AMQP_URL, 'parsesrcdata', 'parsesrcdata.source', q, DB_Session)
     try:
         parseCS.run()
     except KeyboardInterrupt:
@@ -336,7 +336,7 @@ def parseMain(q):
 
 
 def trans2distribute(q):
-    publish2distribueObj = PublisherBase('amqp://guest:guest@localhost:5672/%2F?connection_attempts=3&heartbeat_interval=3600', 'distribute', 'distribute.source', q)
+    publish2distribueObj = PublisherBase(CWebScanSetting.AMQP_URL + "&heartbeat=0", 'distribute', 'distribute.source', q)
     publish2distribueObj.run()
 
 # if __name__ == '__main__':

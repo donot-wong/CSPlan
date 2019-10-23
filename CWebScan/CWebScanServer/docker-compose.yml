@@ -1,0 +1,37 @@
+version: '2'
+
+services:
+  mysql:
+    image: hub.c.163.com/library/mysql:latest
+    environment:
+      MYSQL_ROOT_PASSWORD: 123456
+      MYSQL_USER: donotscan
+      MYSQL_PASSWORD: 123456
+      MYSQL_DATABASE: donotscan
+    volumes:
+      - ./db:/var/lib/mysql
+
+  rabbitmq:
+    image: hub.c.163.com/library/rabbitmq:management
+    environment:
+      - RABBITMQ_DEFAULT_USER=donotscan
+      - RABBITMQ_DEFAULT_PASS=donotpass
+    ports:
+      - '0.0.0.0:15672:15672'
+
+  scan:
+    image: donotscan
+    environment:
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_NAME: donotscan
+      DB_USER: donotscan
+      DB_PASS: 123456
+    depends_on:
+      - mysql
+      - rabbitmq
+    links:
+      - mysql:mysql
+      - rabbitmq:rabbitmq
+    ports:
+      - "0.0.0.0:4579:4579"

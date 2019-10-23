@@ -18,7 +18,7 @@ from sqlalchemy.orm import sessionmaker
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__)))))
 from lib.rabbitqueue.consumerBase import ConsumerBase
-from utils.globalParam import ScanLogger,  BlackParamName, ScanTaskStatus, VulnType, AlertTemplateDict, CWebScanSetting
+from utils.globalParam import CWebScanSetting, ScanLogger,  BlackParamName, ScanTaskStatus, VulnType, AlertTemplateDict, CWebScanSetting
 from utils.DataStructure import RequestData
 from utils.payloads import RCEPayload_DNSLOG, RCEPayload_WEBLOG, RCEPayload_RESP
 from utils.commonFunc import randomStr, randomInt
@@ -217,9 +217,9 @@ class RceScanConsumer(ConsumerBase):
 
 
 def RceScanMain():
-    engine = create_engine('mysql+pymysql://root:123456@127.0.0.1:3306/test', pool_size=20, pool_recycle=599, pool_timeout=30)
+    engine = create_engine(CWebScanSetting.MYSQL_URL, pool_size=20, pool_recycle=599, pool_timeout=30)
     DB_Session = sessionmaker(bind=engine)
-    rce = RceScanConsumer('amqp://guest:guest@localhost:5672/%2F', 'rcescan', 'rcescan.key', DB_Session)
+    rce = RceScanConsumer(CWebScanSetting.AMQP_URL, 'rcescan', 'rcescan.key', DB_Session)
     try:
         rce.run()
     except KeyboardInterrupt:

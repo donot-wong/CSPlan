@@ -4,6 +4,7 @@ import logging
 import pika
 import json
 import multiprocessing
+import functools
 import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__)))))
@@ -70,8 +71,17 @@ class PublisherMultiBase(object):
         ScanLogger.info('Connecting to %s', self._url)
         return pika.SelectConnection(pika.URLParameters(self._url),
                                      on_open_callback=self.on_connection_open,
-                                     on_close_callback=self.on_connection_closed,
-                                     stop_ioloop_on_close=False)
+                                     on_open_error_callback=self.on_connection_open_error,
+                                     on_close_callback=self.on_connection_closed)
+
+    def on_connection_open_error(self, _unused_connection, err):
+        """This method is called by pika if the connection to RabbitMQ
+        can't be established.
+        :param pika.SelectConnection _unused_connection: The connection
+        :param Exception err: The error
+        """
+        ScanLogger.error('Connection open failed, reopening in 5 seconds: %s', err)
+        self._connection.ioloop.call_later(5, self._connection.ioloop.stop)
 
     def on_connection_open(self, unused_connection):
         """This method is called by pika once the connection to RabbitMQ has
@@ -84,7 +94,7 @@ class PublisherMultiBase(object):
         ScanLogger.info('Connection opened')
         self.open_channel()
 
-    def on_connection_closed(self, connection, reply_code, reply_text):
+    def on_connection_closed(self, connection, reason):
         """This method is invoked by pika when the connection to RabbitMQ is
         closed unexpectedly. Since it is unexpected, we will reconnect to
         RabbitMQ if it disconnects.
@@ -98,9 +108,9 @@ class PublisherMultiBase(object):
         if self._stopping:
             self._connection.ioloop.stop()
         else:
-            ScanLogger.warning('Connection closed, reopening in 5 seconds: (%s) %s',
-                           reply_code, reply_text)
-            self._connection.add_timeout(5, self._connection.ioloop.stop)
+            ScanLogger.warning('Connection closed, reopening in 5 seconds: %s',
+                           reason)
+            self._connection.ioloop.call_later(5, self._connection.ioloop.stop)
 
     def open_channel(self):
         """This method will open a new channel with RabbitMQ by issuing the
@@ -134,7 +144,7 @@ class PublisherMultiBase(object):
         ScanLogger.info('Adding channel close callback')
         self._channel.add_on_close_callback(self.on_channel_closed)
 
-    def on_channel_closed(self, channel, reply_code, reply_text):
+    def on_channel_closed(self, channel, reason):
         """Invoked by pika when RabbitMQ unexpectedly closes the channel.
         Channels are usually closed if you attempt to do something that
         violates the protocol, such as re-declare an exchange or queue with
@@ -146,7 +156,7 @@ class PublisherMultiBase(object):
         :param str reply_text: The text reason the channel was closed
 
         """
-        ScanLogger.warning('Channel was closed: (%s) %s', reply_code, reply_text)
+        ScanLogger.warning('Channel was closed: (%s) %s', channel, reason)
         self._channel = None
         if not self._stopping:
             self._connection.close()
@@ -155,23 +165,26 @@ class PublisherMultiBase(object):
         """Setup the exchange on RabbitMQ by invoking the Exchange.Declare RPC
         command. When it is complete, the on_exchange_declareok method will
         be invoked by pika.
-
         :param str|unicode exchange_name: The name of the exchange to declare
-
         """
         ScanLogger.info('Declaring exchange %s', exchange_name)
-        self._channel.exchange_declare(self.on_exchange_declareok,
-                                       exchange_name,
-                                       self.EXCHANGE_TYPE)
+        # Note: using functools.partial is not required, it is demonstrating
+        # how arbitrary data can be passed to the callback when it is called
+        cb = functools.partial(
+            self.on_exchange_declareok, userdata=exchange_name)
+        self._channel.exchange_declare(
+            exchange=exchange_name,
+            exchange_type=self.EXCHANGE_TYPE,
+            callback=cb)
 
-    def on_exchange_declareok(self, unused_frame):
+    def on_exchange_declareok(self, unused_frame, userdata):
         """Invoked by pika when RabbitMQ has finished the Exchange.Declare RPC
         command.
 
         :param pika.Frame.Method unused_frame: Exchange.DeclareOk response frame
 
         """
-        ScanLogger.info('Exchange declared')
+        ScanLogger.info('Exchange declared %s', userdata)
         self.setup_queue(self.QUEUEList)
 
     def setup_queue(self, queue_name_list):
@@ -184,7 +197,7 @@ class PublisherMultiBase(object):
         """
         # ScanLogger.info('Declaring queue %s', queue_name_list)
         for queue_name in queue_name_list:
-            self._channel.queue_declare(self.on_queue_declareok, queue_name)
+            self._channel.queue_declare(queue=queue_name, callback=self.on_queue_declareok)
 
     def on_queue_declareok(self, method_frame):
         """Method invoked by pika when the Queue.Declare RPC call made in
@@ -199,7 +212,7 @@ class PublisherMultiBase(object):
         # ScanLogger.info('Binding %s to %s with %s',
                     # self.EXCHANGE, self.QUEUE, self.ROUTING_KEY)
         for i in range(len(self.QUEUEList)):
-            self._channel.queue_bind(self.on_bindok, self.QUEUEList[i], self.EXCHANGE, self.ROUTING_KEYList[i])
+            self._channel.queue_bind(self.QUEUEList[i], self.EXCHANGE, routing_key=self.ROUTING_KEYList[i], callback=self.on_bindok)
 
     def on_bindok(self, unused_frame):
         """This method is invoked by pika when it receives the Queue.BindOk
@@ -267,7 +280,7 @@ class PublisherMultiBase(object):
         """
         ScanLogger.info('Scheduling next message for %0.1f seconds',
                     self.PUBLISH_INTERVAL)
-        self._connection.add_timeout(self.PUBLISH_INTERVAL,
+        self._connection.ioloop.call_later(self.PUBLISH_INTERVAL,
                                      self.publish_message)
 
     def publish_message(self):
@@ -349,7 +362,7 @@ class PublisherMultiBase(object):
 
 def main(q):
     logging.basicConfig(level=logging.DEBUG, format=LOG_FORMAT)
-    example = PublisherMultiBase('amqp://guest:guest@localhost:5672/%2F?connection_attempts=3&heartbeat_interval=3600', ['queue1', 'queue2', 'queue3'], ['queue1.key', 'queue2.key', 'queue3.key'], q)
+    example = PublisherMultiBase('amqp://donotscan:donotpass@rabbitmq:5672/%2F?connection_attempts=3&heartbeat=3600', ['queue1', 'queue2', 'queue3'], ['queue1.key', 'queue2.key', 'queue3.key'], q)
     example.run()
 
 if __name__ == '__main__':

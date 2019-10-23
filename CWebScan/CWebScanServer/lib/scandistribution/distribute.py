@@ -230,14 +230,14 @@ class DistributeConsumer(ConsumerBase):
 
 
 def distributeMain(q):
-    engine = create_engine('mysql+pymysql://root:123456@127.0.0.1:3306/test', pool_size=20, pool_recycle=599, pool_timeout=30)
+    engine = create_engine(CWebScanSetting.MYSQL_URL, pool_size=20, pool_recycle=599, pool_timeout=30)
     DB_Session = sessionmaker(bind=engine)
-    example = DistributeConsumer('amqp://guest:guest@localhost:5672/%2F', 'distribute', 'distribute.source', q, DB_Session)
+    example = DistributeConsumer(CWebScanSetting.AMQP_URL, 'distribute', 'distribute.source', q, DB_Session)
     try:
         example.run()
     except KeyboardInterrupt:
         example.stop()
 
 def distributeTrans(q):
-    publishmultiObj = PublisherMultiBase('amqp://guest:guest@localhost:5672/%2F?connection_attempts=3&heartbeat_interval=3600', ['sqliscan', 'rcescan'], ['sqliscan.key', 'rcescan.key'], q)
+    publishmultiObj = PublisherMultiBase(CWebScanSetting.AMQP_URL + "&heartbeat=0", ['sqliscan', 'rcescan'], ['sqliscan.key', 'rcescan.key'], q)
     publishmultiObj.run()

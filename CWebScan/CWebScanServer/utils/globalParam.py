@@ -24,6 +24,8 @@ CWebScanSetting.dnslog_prefix = 'xxx'
 CWebScanSetting.weblog_prefix = 'xxx'
 CWebScanSetting.dnslog_api = "http://admin.sqvds.cn" + '/api/' + '32d6e7038e8cb3c752364c9e1e69ff33790562b7' +  '/dnslog/' + '{searchstr}'
 CWebScanSetting.weblog_api = "http://admin.sqvds.cn" + '/api/' + '32d6e7038e8cb3c752364c9e1e69ff33790562b7' +  '/weblog/' + '{searchstr}'
+CWebScanSetting.MYSQL_URL = "mysql+pymysql://root:123456@mysql:3306/donotscan"
+CWebScanSetting.AMQP_URL = "amqp://donotscan:donotpass@rabbitmq:5672/%2F?connection_attempts=3"
 
 # Regular expression for XML POST data
 XML_RECOGNITION_REGEX = r"(?s)\A\s*<[^>]+>(.+>)?\s*\Z"

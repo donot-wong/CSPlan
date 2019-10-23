@@ -19,7 +19,7 @@ from sqlalchemy.orm import sessionmaker
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__)))))
 from lib.rabbitqueue.consumerBase import ConsumerBase
-from utils.globalParam import ScanLogger, ScanTaskStatus, VulnType, AlertTemplateDict
+from utils.globalParam import CWebScanSetting, ScanLogger, ScanTaskStatus, VulnType, AlertTemplateDict
 from utils.globalParam import TIME_STDEV_COEFF, MIN_VALID_DELAYED_RESPONSE
 from utils.DataStructure import RequestData
 from lib.models.datamodel import ScanTask, VulnData
@@ -87,9 +87,9 @@ class FileScanConsumer(ConsumerBase):
 
 
 def FileScanMain():
-    engine = create_engine('mysql+pymysql://root:123456@127.0.0.1:3306/test', pool_size=20, pool_recycle=599, pool_timeout=30)
+    engine = create_engine(CWebScanSetting.MYSQL_URL, pool_size=20, pool_recycle=599, pool_timeout=30)
     DB_Session = sessionmaker(bind=engine)
-    filescan = FileScanConsumer('amqp://guest:guest@localhost:5672/%2F', 'filescan', 'filescan.key', DB_Session)
+    filescan = FileScanConsumer(CWebScanSetting.AMQP_URL, 'filescan', 'filescan.key', DB_Session)
     try:
         filescan.run()
     except KeyboardInterrupt:
