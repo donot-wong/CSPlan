@@ -35,7 +35,7 @@ init_db()
 import logging
 
 
-loghandler = logging.FileHandler('scan.log', encoding='utf-8')
+loghandler = logging.FileHandler('log/scan.log', encoding='utf-8')
 loghandler.setLevel(logging.DEBUG)
 logging_format = logging.Formatter("%(asctime)s - %(filename)s[line:%(lineno)d] - %(levelname)s: %(message)s")
 loghandler.setFormatter(logging_format)

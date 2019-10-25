@@ -37,3 +37,4 @@ COPY . .
 
 CMD ["python", "./main.py"]
 ```
+docker-compose up -d

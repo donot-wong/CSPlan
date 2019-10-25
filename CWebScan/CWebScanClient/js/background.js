@@ -1,4 +1,4 @@
-var CmonitorServer = "http://120.24.224.32:4579/";
+var CmonitorServer = "http://106.12.43.245:4579/";
 // var CmonitorServer = "https:www.baidu.com";
 
 // 启动时创建随机数
@@ -75,7 +75,7 @@ function getReqAndsendRespHeader2Server(InitId, requestId, resIp, statusCode, re
 	// console.log(reqData);
 	// console.log(reqData["requestBody"]);
 	// console.log(JSON.stringify(reqData));
-	if (reqData['url'].indexOf('120.24.224.32') == -1 && reqData['url'].indexOf('twitter.com') == -1) {
+	if (reqData['url'].indexOf('106.12.43.245') == -1 && reqData['url'].indexOf('twitter.com') == -1) {
 		$.ajax({
 			type: "POST",
 			url: CmonitorServer + "Receive?InitId=" + InitId + "&requestId=" + requestId,

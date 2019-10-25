@@ -11,13 +11,17 @@ import random
 SlackHookUrl = "https://hooks.slack.com/services/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"
 
 def send2slack(msg):
-	payload = {"text": msg}
-	header = {'Content-Type': 'application/json'}
-	res = requests.post(SlackHookUrl, data=str(payload), headers=header)
-	if res.text == 'ok':
-		return True, res.text
-	else:
-		return False, res.text
+    payload = {"text": msg}
+    header = {'Content-Type': 'application/json'}
+    try:
+        res = requests.post(SlackHookUrl, data=str(payload), headers=header)
+    except Exception as e:
+        return False, e
+
+    if res.text == 'ok':
+        return True, res.text
+    else:
+        return False, res.text
 
 
 def randomRange(start=0, stop=1000, seed=None):
@@ -80,19 +84,19 @@ def randomStr(length=4, lowercase=False, alphabet=None, seed=None):
 
 
 def main():
-	restatus, msg = send2slack('Scantask finished! Scanid: 12345, url: http://baidu.com, status:1, result: no find!')
-	if restatus:
-		print('ok')
-	else:
-		print('failed')
+    restatus, msg = send2slack('Scantask finished! Scanid: 12345, url: http://baidu.com, status:1, result: no find!')
+    if restatus:
+        print('ok')
+    else:
+        print('failed')
 
 if __name__ == '__main__':
-	xlist = []
-	for i in range(0,10000):
-		_ = randomInt(7)
-		if _ in xlist:
-			print("boom")
-			print(len(xlist))
-			print(_)
-			break
-		xlist.append(_)
+    xlist = []
+    for i in range(0,10000):
+        _ = randomInt(7)
+        if _ in xlist:
+            print("boom")
+            print(len(xlist))
+            print(_)
+            break
+        xlist.append(_)

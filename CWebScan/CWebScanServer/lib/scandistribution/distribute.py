@@ -8,6 +8,7 @@ import pika
 import sys
 import json
 import os
+import re
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
@@ -25,7 +26,7 @@ class DistributeConsumer(ConsumerBase):
         self.transQueue = q
         self.dbsession = dbsession
 
-    def on_message(self, unused_channel, basic_deliver, properties, body):
+    def on_message(self, _unused_channel, basic_deliver, properties, body):
         data = pickle.loads(body)
         ScanLogger.warning('DistributeConsumer received message # %s from %s: %s',
                     basic_deliver.delivery_tag, properties.app_id, data.netloc)
@@ -38,12 +39,22 @@ class DistributeConsumer(ConsumerBase):
             pass
         else:
             # self.changeScanStatus(data.scanid)
+            ScanLogger.warning('repeatCheck Failed ' + data.netloc)
             self.acknowledge_message(basic_deliver.delivery_tag)
             return
 
         '''
-        此处可对原始数据包进行逻辑判断，以通过设定routing_key而进入不同扫描器的消息队列中
+        内网ip检查
         '''
+        if re.match(r"^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$", data.netloc):
+            if self.is_internal_ip(data.netloc):
+                self.acknowledge_message(basic_deliver.delivery_tag)
+                return
+            else:
+                pass
+        else:
+            pass
+
         scanList = []
         isHostScaned = self.hostScanCheck(data.netloc)
         if isHostScaned:
@@ -54,6 +65,10 @@ class DistributeConsumer(ConsumerBase):
             # scanList.append('dir')
             # scanList.append('file')
             pass
+
+        '''
+        此处可对原始数据包进行逻辑判断，以通过设定routing_key而进入不同扫描器的消息队列中
+        '''
         if data.dataformat == 'ALLNO':
             scanList.append('sqli') # header 
             # self.acknowledge_message(basic_deliver.delivery_tag)
@@ -103,7 +118,7 @@ class DistributeConsumer(ConsumerBase):
         for i in scanList:
             scanid = self.save2db(data, ScanTaskVulnType[i])
             data.scanid = scanid
-            self.transQueue.put({'routing_key': i + 'scan.key', 'body': pickle.dumps(data)})
+            self.transQueue.put(pickle.dumps({'routing_key': i + 'scan.key', 'body': pickle.dumps(data)}))
         self.acknowledge_message(basic_deliver.delivery_tag)
 
     def hostScanCheck(self, netloc):
@@ -122,6 +137,18 @@ class DistributeConsumer(ConsumerBase):
             ret = False
         session.close()
         return ret
+
+    def ip_into_int(self, ip):
+        # 先把 192.168.1.13 变成16进制的 c0.a8.01.0d ，再去了“.”后转成10进制的 3232235789 即可。
+        # (((((192 * 256) + 168) * 256) + 1) * 256) + 13
+        return reduce(lambda x,y:(x<<8)+y,map(int,ip.split('.')))
+
+    def is_internal_ip(self, ip):
+        ip = self.ip_into_int(ip)
+        net_a = self.ip_into_int('10.255.255.255') >> 24
+        net_b = self.ip_into_int('172.31.255.255') >> 20
+        net_c = self.ip_into_int('192.168.255.255') >> 16
+        return ip >> 24 == net_a or ip >>20 == net_b or ip >> 16 == net_c
 
     def save2db(self, data, vulntype):
         '''
@@ -157,7 +184,7 @@ class DistributeConsumer(ConsumerBase):
             src_ctl = 0
             NoLength = True
         if NoLength:
-            return False, None
+            return True, None
         respLengthList = []
         for i in range(3):
             ela, headers = self.reqSendForRepeatCheck(data.url, data.method, data.postData, data.reqHeaders)
@@ -192,14 +219,16 @@ class DistributeConsumer(ConsumerBase):
                 '''
                 可重放性检测失败
                 '''
+                ScanLogger.warning('reqSendForRepeatCheck success < 3 times')
                 return False, None
             else:
                 averageLength = sum(respLengthList) / len(respLengthList)
 
-        ration = abs(averageLength - res_length) / res_length
+        ration = abs(averageLength - src_ctl) / src_ctl
         if ration < 0.2:
             return True, averageLength
         else:
+            ScanLogger.warning('ration < 0.2: ' + data.url)
             return False, averageLength
 
     def reqSendForRepeatCheck(self, method, url, data, headers):
@@ -213,6 +242,7 @@ class DistributeConsumer(ConsumerBase):
         try:
             resp = s.send(prepped, verify=False, timeout=20, allow_redirects=False)
         except Exception as e:
+            ScanLogger.warning(e)
             return 0, None
         return resp.elapsed.total_seconds(), resp.headers
 

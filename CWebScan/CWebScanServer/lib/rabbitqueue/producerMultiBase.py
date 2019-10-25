@@ -2,6 +2,7 @@
 
 import logging
 import pika
+import pickle
 import json
 import multiprocessing
 import functools
@@ -83,7 +84,7 @@ class PublisherMultiBase(object):
         ScanLogger.error('Connection open failed, reopening in 5 seconds: %s', err)
         self._connection.ioloop.call_later(5, self._connection.ioloop.stop)
 
-    def on_connection_open(self, unused_connection):
+    def on_connection_open(self, _unused_connection):
         """This method is called by pika once the connection to RabbitMQ has
         been established. It passes the handle to the connection object in
         case we need it, but in this case, we'll just mark it unused.
@@ -94,7 +95,7 @@ class PublisherMultiBase(object):
         ScanLogger.info('Connection opened')
         self.open_channel()
 
-    def on_connection_closed(self, connection, reason):
+    def on_connection_closed(self, _unused_connection, reason):
         """This method is invoked by pika when the connection to RabbitMQ is
         closed unexpectedly. Since it is unexpected, we will reconnect to
         RabbitMQ if it disconnects.
@@ -177,7 +178,7 @@ class PublisherMultiBase(object):
             exchange_type=self.EXCHANGE_TYPE,
             callback=cb)
 
-    def on_exchange_declareok(self, unused_frame, userdata):
+    def on_exchange_declareok(self, _unused_frame, userdata):
         """Invoked by pika when RabbitMQ has finished the Exchange.Declare RPC
         command.
 
@@ -199,7 +200,7 @@ class PublisherMultiBase(object):
         for queue_name in queue_name_list:
             self._channel.queue_declare(queue=queue_name, callback=self.on_queue_declareok)
 
-    def on_queue_declareok(self, method_frame):
+    def on_queue_declareok(self, _unused_frame):
         """Method invoked by pika when the Queue.Declare RPC call made in
         setup_queue has completed. In this method we will bind the queue
         and exchange together with the routing key by issuing the Queue.Bind
@@ -214,7 +215,7 @@ class PublisherMultiBase(object):
         for i in range(len(self.QUEUEList)):
             self._channel.queue_bind(self.QUEUEList[i], self.EXCHANGE, routing_key=self.ROUTING_KEYList[i], callback=self.on_bindok)
 
-    def on_bindok(self, unused_frame):
+    def on_bindok(self, _unused_frame):
         """This method is invoked by pika when it receives the Queue.BindOk
         response from RabbitMQ. Since we know we're now setup and bound, it's
         time to start publishing."""
@@ -299,7 +300,8 @@ class PublisherMultiBase(object):
         if self._channel is None or not self._channel.is_open:
             return
 
-        message = self.TransQUEUE.get()
+        message = pickle.loads(self.TransQUEUE.get())
+
 
         self._channel.basic_publish(self.EXCHANGE, message['routing_key'],
                                     message['body'])
@@ -361,13 +363,13 @@ class PublisherMultiBase(object):
 
 
 def main(q):
-    logging.basicConfig(level=logging.DEBUG, format=LOG_FORMAT)
-    example = PublisherMultiBase('amqp://donotscan:donotpass@rabbitmq:5672/%2F?connection_attempts=3&heartbeat=3600', ['queue1', 'queue2', 'queue3'], ['queue1.key', 'queue2.key', 'queue3.key'], q)
+    # logging.basicConfig(level=logging.DEBUG, format=LOG_FORMAT)
+    example = PublisherMultiBase('amqp://donotscan:donotpass@rabbitmq:5672/%2F?connection_attempts=3&heartbeat=3600', ['test', 'test', 'test'], ['test.key', 'test.key', 'test.key'], q)
     example.run()
 
 if __name__ == '__main__':
     testqueue = multiprocessing.Queue()
     main(testqueue)
-    message = [{'routing_key': 'queue1.key', 'body': '1'}, {'routing_key': 'queue2.key', 'body': '2'}, {'routing_key': 'queue3.key', 'body': '3'}]
+    message = [{'routing_key': 'test.key', 'body': '1'}, {'routing_key': 'test.key', 'body': '2'}, {'routing_key': 'test.key', 'body': '3'}]
     for i in message:
         testqueue.put(i)

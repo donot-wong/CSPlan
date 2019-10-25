@@ -31,7 +31,7 @@ class ParseConsumer(ConsumerBase):
         self.TransQUEUE = q
         self.dbsession = dbsession
 
-    def on_message(self, unused_channel, basic_deliver, properties, body):
+    def on_message(self, _unused_channel, basic_deliver, properties, body):
         '''
         重写消息处理方法
         '''
@@ -46,7 +46,11 @@ class ParseConsumer(ConsumerBase):
             self.TransQUEUE.put(pickle.dumps(data_parsed))
 
     def parse_message(self, body):
-        postDataJson = json.loads(pickle.loads(body))
+        try:
+            postDataJson = json.loads(pickle.loads(body))
+        except Exception as e:
+            ScanLogger.warning('Get Data Error' + e)
+        
         try:
             chromeType = postDataJson['bodyType']
         except Exception as e:
@@ -74,14 +78,28 @@ class ParseConsumer(ConsumerBase):
         # 原始数据存储
         # ...
         # print(postDataJson['requestBody'])
-        save2data_raw = data_raw(
-            saveid = postDataJson['InitId'] + postDataJson['requestId'], 
-            url = postDataJson['url'], 
-            method = postDataJson['method'], 
-            body = parse.quote(postDataJson['requestBody']) if chromeType not in ['empty','error'] else '' , 
-            reqheaders = parse.quote(str(reqHeaders)), 
-            resheaders = parse.quote(str(postDataJson['resHeaders']))
-        )
+        # try:
+        #     if chromeType not in ['empty','error']:
+        #         ScanLogger.warning('tmp1' + str(postDataJson['requestBody']) + str(type(postDataJson['requestBody'])))
+        #     tmp1 = parse.quote(str(postDataJson['requestBody'])) if chromeType not in ['empty','error'] else ''
+        #     ScanLogger.warning('tmp2' + str(reqHeaders) + str(type(reqHeaders)))
+        #     tmp2 = parse.quote(str(reqHeaders))
+        #     ScanLogger.warning('tmp3' + str(postDataJson['resHeaders']) + str(type(postDataJson['resHeaders'])))
+        #     tmp3 = parse.quote(str(postDataJson['resHeaders']))
+        # except Exception as e:
+        #     ScanLogger.warning(e)
+        try:
+            save2data_raw = data_raw(
+                saveid = postDataJson['InitId'] + postDataJson['requestId'], 
+                url = postDataJson['url'], 
+                method = postDataJson['method'], 
+                body = parse.quote(str(postDataJson['requestBody'])) if chromeType not in ['empty','error'] else '' , 
+                reqheaders = parse.quote(str(reqHeaders)), 
+                resheaders = parse.quote(str(postDataJson['resHeaders']))
+            )
+        except Exception as e:             
+            ScanLogger.warning(e)
+            return None
 
         if chromeType in ['formData', 'raw']:
             parseObj = ParseBaseClass.ParseBase(postDataJson['url'], chromeType, contentType, postDataJson['requestBody'])
@@ -168,7 +186,7 @@ class ParseConsumer(ConsumerBase):
                     key2raw = key2raw + key
                 key2 = hashlib.md5(key2raw.encode('utf-8')).hexdigest()
             except Exception as e:
-                key2 = ''      
+                key2 = ''
         elif res.dataformat == 'ALLNO':
             keytype = 2
             key2 = ''
@@ -210,22 +228,24 @@ class ParseConsumer(ConsumerBase):
 
         # 清洗后数据存储
         # ...
-
-        save2data_clean = data_clean(
-            saveid = res.saveid, 
-            netloc = res.netloc,
-            scheme = res.scheme,
-            method = res.method,
-            path = res.path,
-            query = res.query,
-            body = parse.quote(json.dumps(res.postData)),
-            ct = res.ct,
-            cookie = res.cookie,
-            reqheaders = parse.quote(json.dumps(res.reqHeaders)),
-            resheaders = parse.quote(json.dumps(res.resHeaders)),
-            statuscode = res.statuscode
-        )
-
+        try:
+            save2data_clean = data_clean(
+                saveid = res.saveid, 
+                netloc = res.netloc,
+                scheme = res.scheme,
+                method = res.method,
+                path = res.path,
+                query = res.query,
+                body = parse.quote(str(json.dumps(res.postData))),
+                ct = res.ct,
+                cookie = res.cookie,
+                reqheaders = parse.quote(str(json.dumps(res.reqHeaders))),
+                resheaders = parse.quote(str(json.dumps(res.resHeaders))),
+                statuscode = res.statuscode
+            )
+        except Exception as e:
+            ScanLogger.warning(e)
+            return None
         ScanLogger.warning('ParseConsumer handle message # %s start...', res.saveid)
 
         try:

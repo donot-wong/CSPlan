@@ -62,7 +62,7 @@ class FileScanConsumer(ConsumerBase):
         self.dbsession = dbsession
 
 
-    def on_message(self, unused_channel, basic_deliver, properties, body):
+    def on_message(self, _unused_channel, basic_deliver, properties, body):
         '''
         重写消息处理方法
         '''

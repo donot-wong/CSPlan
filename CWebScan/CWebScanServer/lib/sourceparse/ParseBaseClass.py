@@ -174,11 +174,21 @@ class ParseBase(object):
         return tuple(result) if result else ('', {})
 
     def _parseFormData(self):
-        return json.loads(self.data)
+        try:
+            return json.loads(str(self.data))
+        except json.decoder.JSONDecodeError:
+            self.data = json.dumps(eval(str(self.data)))
+            return json.loads(self.data)
+        except Exception as e:
+            ScanLogger.warning(e)
+        
 
     def _parseRawData(self):
         _data = self.data
-        _data_raw = parse.unquote(_data)
+        try:
+            _data_raw = parse.unquote(_data)
+        except Exception as e:
+            print(e)
         sts, data = self.dataFormatIdent(_data_raw)
         return data
 
