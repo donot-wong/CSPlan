@@ -132,7 +132,7 @@ class RceScan(ScanBase):
         $(command)
         无空格 cu$9rl${IFS}baidu.com {curl,baidu.com}
         '''
-        payload_randstr =  randomStr(5, seed=int(self.saveid[6:]))
+        payload_randstr =  randomStr(5, lowercase=True, seed=int(self.saveid[6:]))
         if loc == 'params':
             for payload in RCEPayload_DNSLOG:
                 _getData = copy.copy(self.getData)
