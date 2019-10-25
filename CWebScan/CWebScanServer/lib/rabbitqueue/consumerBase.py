@@ -5,6 +5,7 @@ import pika
 import json
 import pickle
 import functools
+import traceback
 import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__)))))
@@ -111,6 +112,7 @@ class ConsumerBase(object):
         else:
             ScanLogger.warning('Connection closed, reopening in 5 seconds: %s:%s',
                             self.__class__.__name__, reason)
+            ScanLogger.warning(traceback.format_exc())
             self.reconnect()
 
     def reconnect(self):

@@ -36,7 +36,7 @@ import logging
 
 
 loghandler = logging.FileHandler('log/scan.log', encoding='utf-8')
-loghandler.setLevel(logging.DEBUG)
+ScanLogger.setLevel(logging.WARNING)
 logging_format = logging.Formatter("%(asctime)s - %(filename)s[line:%(lineno)d] - %(levelname)s: %(message)s")
 loghandler.setFormatter(logging_format)
 ScanLogger.addHandler(loghandler)

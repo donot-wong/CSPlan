@@ -284,7 +284,7 @@ class ScanBase(object):
         except Exception as e:
             resp = None
 
-        ScanLogger.warning('ScanBase reqSend function: send requests to: %s' % req.url)
+        ScanLogger.info('ScanBase reqSend function: send requests to: %s' % req.url)
         return resp
 
     def dataTypeCheck(self, data):
