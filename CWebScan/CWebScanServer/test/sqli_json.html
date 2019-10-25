@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Sqli_Json</title>
+<script
+  src="https://code.jquery.com/jquery-3.3.1.min.js"
+  integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8="
+  crossorigin="anonymous"></script>
+</head>
+<body>
+	<div id="myDiv"><h2>Let AJAX change this text</h2></div>
+<script type="text/javascript">
+	var data = {"user": "root"};
+	$.ajax({
+		method: 'POST',
+		url: 'http://119.29.75.201/index.php',
+		contentType: 'application/json',
+		data: JSON.stringify(data),
+		success: function(result){
+			$("#myDiv").html(result);
+		}
+	});
+</script>
+</body>
+</html>

@@ -1,4 +1,4 @@
-var CmonitorServer = "http://120.24.224.32:4579/";
+var CmonitorServer = "http://106.12.43.245:4579/";
 // var CmonitorServer = "https:www.baidu.com";
 
 // 启动时创建随机数
@@ -30,11 +30,13 @@ function saveReqbody2Storage(InitId, requestId, requrl, method, initiator, bodyT
 	}
 	if (bodyType != 'empty') {
 		existData["bodyType"] = bodyType;
-		existData["requestBody"] = JSON.stringify(requestBody);
+		existData["requestBody"] = requestBody;
+		// existData["requestBody"] = requestBody;
 		// console.log(existData['requestBody']);
 	}else{
 		existData["bodyType"] = bodyType;
 	}
+
 	sessionStorage.setItem(saveKey, JSON.stringify(existData));
 }
 
@@ -71,12 +73,15 @@ function getReqAndsendRespHeader2Server(InitId, requestId, resIp, statusCode, re
 	// console.log(reqData);
 	sessionStorage.removeItem(saveKey);
 	// console.log(reqData);
-	$.ajax({
-		type: "POST",
-		url: CmonitorServer + "Receive?InitId=" + InitId + "&requestId=" + requestId,
-		data: JSON.stringify(reqData)
-	});
-	// console.log(JSON.stringify(reqData))
+	// console.log(reqData["requestBody"]);
+	// console.log(JSON.stringify(reqData));
+	if (reqData['url'].indexOf('106.12.43.245') == -1 && reqData['url'].indexOf('twitter.com') == -1) {
+		$.ajax({
+			type: "POST",
+			url: CmonitorServer + "Receive?InitId=" + InitId + "&requestId=" + requestId,
+			data: JSON.stringify(reqData)
+		});
+	}
 }
 
 
@@ -103,12 +108,14 @@ chrome.webRequest.onBeforeRequest.addListener(
 		        		var requestBodyRaw = details.requestBody.raw;
 		        		var bodyType = "raw";
 	        			var dec = new TextDecoder("utf-8");
-	        			var requestBody = {};
+	        			var requestBody = "";
 	        			for (var i = 0; i < requestBodyRaw.length; i++) {
 	        				if (requestBodyRaw[i].hasOwnProperty('bytes')) {
-	        					requestBody[i] = escape(dec.decode(requestBodyRaw[i].bytes));
+	        					requestBody += dec.decode(requestBodyRaw[i].bytes);
+	        					// console.log(requestBody[i]);
 	        				}else{
-	        					requestBody[i] = escape(requestBodyRaw[i].file);
+	        					requestBody += requestBodyRaw[i].file;
+	        					// console.log(requestBody[i]);
 	        				}
 		        		}
 		        	}

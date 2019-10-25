@@ -37,6 +37,7 @@ class data_raw(BaseModel):
 	# cookie = Column(String(2000))
 	reqheaders = Column(Text(5000))
 	resheaders = Column(Text(5000))
+	parsestatus = Column(Integer)
 	time = Column(DateTime, default=datetime.datetime.now)
 
 
@@ -54,7 +55,7 @@ class data_clean(BaseModel):
 	body = Column(Text(5000))
 	# ua = Column(String(200))
 	ct = Column(String(200))
-	cookie = Column(String(5000))
+	cookie = Column(Text(5000))
 	reqheaders = Column(Text(5000))
 	resheaders = Column(Text(5000))
 	statuscode = Column(Integer)
@@ -76,14 +77,19 @@ class data_clean_key(BaseModel):
 class ScanTask(BaseModel):
 	"""扫描任务"""
 	__tablename__ = 'scantask'
-	id = Column(Integer, primary_key=True)   
+	id = Column(Integer, primary_key=True)
 	dataid = Column(String(100)) # unique
+	netloc = Column(String(100))
 	scantype = Column(Integer)
-	# createtime = Column(DateTime, default=datetime.datetime.now)
-	# updatetime = Column(DateTime)
 	status = Column(Integer) # 任务状态
 	createtime = Column(DateTime, server_default=func.now(), comment='创建时间')
 	updatetime = Column(DateTime, server_default=func.now(), onupdate=func.now(), comment='修改时间')
+
+class HostScan(BaseModel):
+	"""主机扫描"""
+	__tablename__ = 'hostscan'
+	id = Column(Integer, primary_key=True)
+	host = Column(String(100))
 
 
 class VulnData(BaseModel):
@@ -92,7 +98,15 @@ class VulnData(BaseModel):
 	id = Column(Integer, primary_key=True)
 	dataid = Column(String(100))
 	scanid = Column(Integer)
+	netloc = Column(String(100))
 	vulntype = Column(Integer)
 	time = Column(DateTime, default=datetime.datetime.now)
 	status = Column(Integer)
 	paramname = Column(String(100))
+
+class Config(BaseModel):
+	__tablename__ = 'config'
+	id = Column(Integer, primary_key=True)
+	key = Column(String(100))
+	value = Column(String(100))
+		

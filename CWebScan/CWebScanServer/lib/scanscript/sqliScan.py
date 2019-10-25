@@ -19,13 +19,13 @@ from sqlalchemy.orm import sessionmaker
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__)))))
 from lib.rabbitqueue.consumerBase import ConsumerBase
-from utils.globalParam import ScanLogger,  BlackParamName, ScanTaskStatus, VulnType, AlertTemplateDict, CalcAverageTimeLimitCnt
+from utils.globalParam import CWebScanSetting, ScanLogger,  BlackParamName, BLACK_COOKIE_KEY_LIST, BLACK_HTTP_HEADER_KEY_LIST, ScanTaskStatus, VulnType, AlertTemplateDict, CalcAverageTimeLimitCnt
 from utils.globalParam import TIME_STDEV_COEFF, MIN_VALID_DELAYED_RESPONSE
 from utils.DataStructure import RequestData
 from lib.scanscript.sqliscan.errorbased import plainArray, regexArray
 from lib.models.datamodel import ScanTask, VulnData
 from utils.commonFunc import send2slack
-from utils.payloads import SQLiPayload_Sleep, SQLiPayload_Sleep_Normal
+from utils.payloads import SQLiPayload_Sleep, SQLiPayload_Sleep_Normal, SQLiPayload_ErrorBased
 from lib.scanscript.scanBase import ScanBase
 
 
@@ -44,7 +44,7 @@ class SqliScan(ScanBase):
         # ScanLogger.warning('run called SqliScanBase')
         self.init()
 
-        if self.method == 'GET':
+        if self.dataformat == 'NOBODY':
             for key, value in self.getData.items():
                 if key not in BlackParamName:
                     hasErrorSqliVuln = self.errorbased('params', key)
@@ -60,7 +60,7 @@ class SqliScan(ScanBase):
                             continue
                 else:
                     continue
-        elif self.method == 'POST' and self.postData != '':
+        elif self.dataformat == 'FORMDATA':
             for key, value in self.postData.items():
                 if key not in BlackParamName:
                     hasErrorSqliVuln = self.errorbased('data', key)
@@ -76,32 +76,156 @@ class SqliScan(ScanBase):
                             continue
                 else:
                     continue
+        elif self.dataformat == 'JSON':
+            self.jsondata = json.loads(self.postData)
+            try:
+                for key, value in self.jsondata.items():
+                    if key not in BlackParamName:
+                        hasErrorSqliVuln = self.errorbased('data', key)
+                        if hasErrorSqliVuln:
+                            self.saveScanResult(VulnType['sqli-error', key])
+                            continue
+                        else:
+                            hasTimeSqliVuln = self.timebased('data', key)
+                            if hasTimeSqliVuln:
+                                self.saveScanResult(VulnType['sqli-time'], key)
+                                continue
+                            else:
+                                continue
+                    else:
+                        continue
+            except AttributeError as e:
+                pass
+        elif self.dataformat == 'MULTIPART':
+            pass
         else:
             pass
 
+
+        # 其他含get参数的情况
+        if self.dataformat in ['FORMDATA', 'JSON'] and self.getData != {}:
+            for key, value in self.getData.items():
+                if key not in BlackParamName:
+                    hasErrorSqliVuln = self.errorbased('params', key)
+                    if hasErrorSqliVuln:
+                        self.saveScanResult(VulnType['sqli-error'], key)
+                        continue
+                    else:
+                        hasTimeSqliVuln = self.timebased('params', key)
+                        if hasTimeSqliVuln:
+                            self.saveScanResult(VulnType['sqli-time', time])
+                            continue
+                else:
+                    continue
+        else:
+            pass
+
+        # referer cookie header注入扫描
+        self.headerScan()
+
         self.changeScanStatus()
+
+    def headerScan(self):
+        if len(self.cookie) > 0:
+            for key in self.cookieDict:
+                if key != 'other':
+                    flag = False
+                    for black_cookie_key in BLACK_COOKIE_KEY_LIST:
+                        if black_cookie_key.lower() in key:
+                            flag = True
+                            break
+                    if flag:
+                        continue
+                    else:
+                        if self.errorbased('header-cookie', key):
+                            self.saveScanResult(VulnType['sqli-error'], 'Cookie: ' + key)
+                        elif self.timebased('header-cookie', key):
+                            self.saveScanResult(VulnType['sqli-time'], 'Cookie: ' + key)
+                        else:
+                            continue
+                else:
+                    continue
+        else:
+            pass
+
+        if 'Referer' in self.SrcRequestHeaders:
+            if self.errorbased('header', 'Referer'):
+                self.saveScanResult(VulnType['sqli-error'], 'Referer')
+            elif self.timebased('header', 'Referer'):
+                self.saveScanResult(VulnType['sqli-time'], 'Referer')
+            else:
+                pass
+        if 'User-Agent' in self.SrcRequestHeaders:
+            if self.errorbased('header', 'User-Agent'):
+                self.saveScanResult(VulnType['sqli-error'], 'User-Agent')
+            elif self.timebased('header', 'User-Agent'):
+                self.saveScanResult(VulnType['sqli-time'], 'User-Agent')
+            else:
+                pass
+
+        # other header
+        for header_key in self.SrcRequestHeaders:
+            if header_key.lower() in BLACK_HTTP_HEADER_KEY_LIST:
+                pass
+            else:
+                if self.errorbased('header', header_key):
+                    self.saveScanResult(VulnType['sqli-error'], 'Header: ' + header_key)
+                elif self.timebased('header', header_key):
+                    self.saveScanResult(VulnType['sqli-time'], 'Header: ' + header_key)
+                else:
+                    pass
+
 
     def errorbased(self, loc, key):
         '''
         基于报错的注入扫描
         '''
-        if loc == 'params' and self.method == 'GET':
+        if loc == 'params':
             _getData = copy.copy(self.getData)
-            _getData[key] = _getData[key] + '\'"'
-            res = self.reqSend(loc, _getData, self.url, self.method, self.cookie, self.ua, self.ct, self.SrcRequestHeaders)
-            self.sendreqCnt += 1
-            return self.checkIsErrorBaseSqli(res)
-        elif loc == 'data' and self.method == 'POST':
+            for error_payload in SQLiPayload_ErrorBased:
+                _getData[key] = str(self.getData[key]) + error_payload
+                res = self.reqSend(loc, _getData, self.url, self.method, self.cookie, self.ua, self.ct, self.SrcRequestHeaders)
+                self.sendreqCnt += 1
+                if self.checkIsErrorBaseSqli(res):
+                    return True
+        elif loc == 'data' and self.dataformat == 'FORMDATA':
             _postData = copy.copy(self.postData)
-            _postData[key] = _postData[key] + '\'"'
-            res = self.reqSend(loc, _postData, self.url, self.method, self.cookie, self.ua, self.ct, self.SrcRequestHeaders)
-            self.sendreqCnt += 1
-            return self.checkIsErrorBaseSqli(res)
-        elif loc == 'params' and self.method == 'POST':
-            return False
+            for error_payload in SQLiPayload_ErrorBased:
+                _postData[key] = str(self.postData[key]) + error_payload
+                res = self.reqSend(loc, _postData, self.url, self.method, self.cookie, self.ua, self.ct, self.SrcRequestHeaders)
+                self.sendreqCnt += 1
+                if self.checkIsErrorBaseSqli(res):
+                    return True
+        elif loc == 'data' and self.dataformat == 'JSON':
+            _postData = copy.copy(self.jsondata)
+            for error_payload in SQLiPayload_ErrorBased:
+                _postData[key] = str(self.jsondata[key]) + error_payload
+                res = self.reqSend(loc, json.dumps(_postData), self.url, self.method, self.cookie, self.ua, self.ct, self.SrcRequestHeaders)
+                self.sendreqCnt += 1
+                if self.checkIsErrorBaseSqli(res):
+                    return True
+        elif loc == 'header-cookie':
+            _cookie = copy.copy(self.cookieDict)
+            _header = copy.copy(self.SrcRequestHeaders)
+            for error_payload in SQLiPayload_ErrorBased:
+                _cookie[key] = self.cookieDict[key] + error_payload
+                _header['Cookie'] = self.cookieDict2Str(_cookie)
+                res = self.reqSend('header', header=_header, cookie={})
+                self.sendreqCnt += 1
+                if self.checkIsErrorBaseSqli(res):
+                    return True
+        elif loc == 'header':
+            _header = copy.copy(self.SrcRequestHeaders)
+            for error_payload in SQLiPayload_ErrorBased:
+                _header[key] = self.SrcRequestHeaders[key] + error_payload
+                res = self.reqSend('header', header=_header)
+                self.sendreqCnt += 1
+                if self.checkIsErrorBaseSqli(res):
+                    return True
         else:
             ScanLogger.warning('Can not handle this request\'s method: %s' % self.method)
             return False
+        return False
 
     def timebased(self, loc, key):
         '''
@@ -113,39 +237,88 @@ class SqliScan(ScanBase):
             pass
         else:
             return False
-        if loc == 'params' and self.method == 'GET':
+        if loc == 'params':
+            _getData = copy.copy(self.getData)
             for payload_idx in range(len(SQLiPayload_Sleep)):
-                _getData = copy.copy(self.getData)
-                _getData[key] = _getData[key] + SQLiPayload_Sleep[payload_idx].format(sleep='sleep(3)')
-                # print(_getData)
-                res = self.reqSend(loc,_getData,self.url,self.method,self.cookie,self.ua,self.ct,self.SrcRequestHeaders)
+                _getData[key] = str(self.getData[key]) + SQLiPayload_Sleep[payload_idx].format(sleep='sleep(2)')
+                res = self.reqSend(loc, _getData, self.url, self.method, self.cookie, self.ua, self.ct, self.SrcRequestHeaders)
+                self.sendreqCnt += 1
                 if res is None:
                     continue
+                # print('一次时间延迟检测： %s' % res.elapsed.total_seconds())
                 if res.elapsed.total_seconds() >= max(MIN_VALID_DELAYED_RESPONSE, self.delayTimeJudgeStandard):
-                    # print('Delay Occur: resptime: %s' % res.elapsed.total_seconds())
                     if self.twiceCheckForTimeBased(loc, key, payload_idx, res.elapsed):
-                        # print('twiceCheckForTimeBased Successfully!')
                         return True
                     else:
-                        # print('twiceCheckForTimeBased Failed')
                         continue
-        elif loc == 'data' and self.method == 'POST':
+                else:
+                    continue
+        elif loc== 'data' and self.dataformat == 'FORMDATA':
+            _postData = copy.copy(self.postData)
             for payload_idx in range(len(SQLiPayload_Sleep)):
-                _postData = copy.copy(self.postData)
-                _postData[key] = _postData[key] + SQLiPayload_Sleep[payload_idx].format(sleep='sleep(3)')
-                res = self.reqSend(loc,_postData,self.url,self.method, self.cookie, self.ua, self.ct, self.SrcRequestHeaders)
+                _postData[key] = str(self.postData[key]) + SQLiPayload_Sleep[payload_idx].format(sleep='sleep(2)')
+                res = self.reqSend(loc, _postData, self.url, self.method, self.cookie, self.ua, self.ct, self.SrcRequestHeaders)
+                self.sendreqCnt += 1
                 if  res is None:
                     continue
                 if res.elapsed.total_seconds() > max(MIN_VALID_DELAYED_RESPONSE, self.delayTimeJudgeStandard):
-                    if self.twiceCheckForTimeBased(loc, key, payload_idx, res.elapsed):
+                    if self.twiceCheckForTimeBased(loc, key, payload_idx, res.elapsed.total_seconds()):
                         return True
                     else:
                         continue
-        elif loc == 'params' and self.method == 'POST':
-            return False
+                else:
+                    continue
+        elif loc == 'data' and self.dataformat == 'JSON':
+            _postData = copy.copy(self.jsondata)
+            for payload_idx in range(len(SQLiPayload_Sleep)):
+                _postData[key] = str(self.jsondata[key]) + SQLiPayload_Sleep[payload_idx].format(sleep='sleep(2)')
+                res = self.reqSend(loc, json.dumps(_postData), self.url, self.method, self.cookie, self.ua, self.ct, self.SrcRequestHeaders)
+                self.sendreqCnt += 1
+                if res is None:
+                    continue
+                if res.elapsed.total_seconds() > max(MIN_VALID_DELAYED_RESPONSE, self.delayTimeJudgeStandard):
+                    if self.twiceCheckForTimeBased(loc, key, payload_idx, res.elapsed.total_seconds()):
+                        return True
+                    else:
+                        continue
+                else:
+                    continue
+        elif loc == 'header-cookie':
+            _cookie = copy.copy(self.cookieDict)
+            _header = copy.copy(self.SrcRequestHeaders)
+            for payload_idx in range(len(SQLiPayload_Sleep)):
+                _cookie[key] = self.cookieDict[key] + SQLiPayload_Sleep[payload_idx].format(sleep='sleep(2)')
+                _header['Cookie'] = self.cookieDict2Str(_cookie)
+                res = self.reqSend('header', header=_header, cookie={})
+                self.sendreqCnt += 1
+                if res is None:
+                    continue
+                if res.elapsed.total_seconds() > max(MIN_VALID_DELAYED_RESPONSE, self.delayTimeJudgeStandard):
+                    if self.twiceCheckForTimeBased(loc, key, payload_idx, res.elapsed.total_seconds()):
+                        return True
+                    else:
+                        return False
+                else:
+                    continue
+        elif loc == 'header':
+            _header = copy.copy(self.SrcRequestHeaders)
+            for payload_idx in range(len(SQLiPayload_Sleep)):
+                _header[key] = self.SrcRequestHeaders[key] + SQLiPayload_Sleep[payload_idx].format(sleep='sleep(2)')
+                res = self.reqSend('header', header=_header)
+                self.sendreqCnt += 1
+                if res is None:
+                    continue
+                if res.elapsed.total_seconds() > max(MIN_VALID_DELAYED_RESPONSE, self.delayTimeJudgeStandard):
+                    if self.twiceCheckForTimeBased(loc, key, payload_idx, res.elapsed.total_seconds()):
+                        return True
+                    else:
+                        return False
+                else:
+                    continue
         else:
             ScanLogger.warning('Can not handle this request\'s method: %s' % self.method)
             return False
+        return False
 
     def twiceCheckForTimeBased(self, loc, key, payload_idx, onceela):
         '''
@@ -156,46 +329,88 @@ class SqliScan(ScanBase):
             # print('twiceCheckForTimeBased Failed, els: %s' % ela)
             return False
         else:
-            if loc == 'params' and self.method == 'GET':
+            if loc == 'params':
                 _getData = copy.copy(self.getData)
-                _getData[key] = _getData[key] + SQLiPayload_Sleep_Normal[payload_idx]
-                # print('twiceCheckForTimeBased Normal Payload: ' + str(_getData))
+                # 进行一次不发生时间延迟payload检测
+                _getData[key] = str(self.getData[key]) + SQLiPayload_Sleep_Normal[payload_idx]
                 res = self.reqSend(loc, _getData, self.url, self.method, self.cookie, self.ua, self.ct, self.SrcRequestHeaders)
+                self.sendreqCnt += 1
                 if res.elapsed.total_seconds() < max(MIN_VALID_DELAYED_RESPONSE, self.delayTimeJudgeStandard):
-                    _getData = copy.copy(self.getData)
-                    _getData[key] = _getData[key] + SQLiPayload_Sleep[payload_idx].format(sleep='sleep(3)')
-                    # print('twiceCheckForTimeBased Sleep Payload: %s' % str(_getData))
+                    # 进行一次时间延迟注入payload检测
+                    _getData[key] = str(self.getData[key]) + SQLiPayload_Sleep[payload_idx].format(sleep='sleep(2)')
                     res = self.reqSend(loc, _getData, self.url, self.method, self.cookie, self.ua, self.ct, self.SrcRequestHeaders)
+                    self.sendreqCnt += 1
+                    # print('二次检测响应时间： %s' % res.elapsed.total_seconds())
                     if res.elapsed.total_seconds() >= max(MIN_VALID_DELAYED_RESPONSE, self.delayTimeJudgeStandard):
                         return True
                     else:
-                        # print('twiceCheckForTimeBased Sleep Payload checkFailed: ela: %s' % res.elapsed.total_seconds())
                         return False
                 else:
-                    # print('twiceCheckForTimeBased Normal Payload checkFailed: ela: %s' % res.elapsed.total_seconds())
                     return False
-            elif loc == 'data' and self.method == 'POST':
+            elif loc == 'data' and self.dataformat == 'FORMDATA':
                 _postData = copy.copy(self.postData)
-                _postData[key] = _postData[key] + SQLiPayload_Sleep_Normal[payload_idx]
-                print('twiceCheckForTimeBased Normal Payload: ' + str(_postData))
+                _postData[key] = str(self.postData[key]) + SQLiPayload_Sleep_Normal[payload_idx]
                 res = self.reqSend(loc, _postData, self.url, self.method, self.cookie, self.ua, self.ct, self.SrcRequestHeaders)
+                self.sendreqCnt += 1
                 if res.elapsed.total_seconds() < max(MIN_VALID_DELAYED_RESPONSE, self.delayTimeJudgeStandard):
-                    _postData = copy.copy(self.postData)
-                    _postData[key] = _postData[key] + SQLiPayload_Sleep[payload_idx].format(sleep='sleep(3)')
-                    print('twiceCheckForTimeBased Sleep Payload: %s' % str(_postData))
+                    _postData[key] = str(self.postData[key]) + SQLiPayload_Sleep[payload_idx].format(sleep='sleep(2)')
                     res = self.reqSend(loc, _postData, self.url,self.method, self.cookie, self.ua, self.ct, self.SrcRequestHeaders)
+                    self.sendreqCnt += 1
                     if res.elapsed.total_seconds() >= max(MIN_VALID_DELAYED_RESPONSE, self.delayTimeJudgeStandard):
                         return True
                     else:
-                        print('twiceCheckForTimeBased Sleep Payload checkFailed: ela: %s' % res.elapsed.total_seconds())
                         return False
                 else:
-                    print('twiceCheckForTimeBased Normal Payload checkFailed: ela: %s' % res.elapsed.total_seconds())
                     return False
-            elif loc == 'params' and self.method == 'POST':
-                return False
+            elif loc == 'data' and self.dataformat == 'JSON':
+                _postData = copy.copy(self.jsondata)
+                _postData[key] = str(self.jsondata[key]) + SQLiPayload_Sleep_Normal[payload_idx]
+                res = self.reqSend(loc, json.dumps(_postData), self.url, self.method, self.cookie, self.ua, self.ct, self.SrcRequestHeaders)
+                self.sendreqCnt += 1
+                if res.elapsed.total_seconds() <  max(MIN_VALID_DELAYED_RESPONSE, self.delayTimeJudgeStandard):
+                    _postData[key] = str(self.jsondata[key]) + SQLiPayload_Sleep[payload_idx].format(sleep='sleep(2)')
+                    res = self.reqSend(loc, json.dumps(_postData), self.url, self.method, self.cookie, self.ua, self.ct, self.SrcRequestHeaders)
+                    self.sendreqCnt += 1
+                    if res.elapsed.total_seconds() >= max(MIN_VALID_DELAYED_RESPONSE, self.delayTimeJudgeStandard):
+                        return True
+                    else:
+                        return False
+                else:
+                    return False
+            elif loc == 'header-cookie':
+                _cookie = copy.copy(self.cookieDict)
+                _header = copy.copy(self.SrcRequestHeaders)
+                _cookie[key] = self.cookieDict[key] + SQLiPayload_Sleep_Normal[payload_idx]
+                _header['Cookie'] = self.cookieDict2Str(_cookie)
+                res = self.reqSend('header', header=_header, cookie={})
+                self.sendreqCnt += 1
+                if res.elapsed.total_seconds() < max(MIN_VALID_DELAYED_RESPONSE, self.delayTimeJudgeStandard):
+                    _cookie[key] = self.cookieDict[key] + SQLiPayload_Sleep[payload_idx].format(sleep='sleep(2)')
+                    _header['Cookie'] = self.cookieDict2Str(_cookie)
+                    res = self.reqSend('header', header=_header, cookie={})
+                    self.sendreqCnt += 1
+                    if res.elapsed.total_seconds() >= max(MIN_VALID_DELAYED_RESPONSE, self.delayTimeJudgeStandard):
+                        return True
+                    else:
+                        return False
+                else:
+                    return False
+            elif loc == 'header':
+                _header = copy.copy(self.SrcRequestHeaders)
+                _header[key] = self.SrcRequestHeaders[key] + SQLiPayload_Sleep_Normal[payload_idx]
+                res = self.reqSend(loc, header=_header)
+                if res.elapsed.total_seconds() < max(MIN_VALID_DELAYED_RESPONSE, self.delayTimeJudgeStandard):
+                    _header[key] = self.SrcRequestHeaders[key] + SQLiPayload_Sleep[payload_idx].format(sleep='sleep(2)')
+                    res = self.reqSend(loc, header=_header)
+                    if res.elapsed.total_seconds() >= max(MIN_VALID_DELAYED_RESPONSE, self.delayTimeJudgeStandard):
+                        return True
+                    else:
+                        return False
+                else:
+                    return False
             else:
                 return False
+        return False
 
     def delayMinTimeCalc(self):
         '''
@@ -208,15 +423,20 @@ class SqliScan(ScanBase):
             if ela != 0 and headers is not None:
                 self.respTimeList.append(ela)
             if cnt > 20:
-                return False
-
-        min_resp_time = min(self.respTimeList)
-        average_resp_time = sum(self.respTimeList) / len(self.respTimeList)
-        _ = 0
-        for i in self.respTimeList:
-            _ += (i - average_resp_time)**2
-        deviation = (_ / (len(self.respTimeList) - 1)) ** 0.5
-        self.delayTimeJudgeStandard = average_resp_time + TIME_STDEV_COEFF * deviation
+                break
+        # print(self.respTimeList)
+        if len(self.respTimeList) == 0:
+            # min_resp_time = 0
+            self.delayTimeJudgeStandard = 0
+        else:
+            # min_resp_time = min(self.respTimeList)
+            average_resp_time = sum(self.respTimeList) / len(self.respTimeList)
+            _ = 0
+            for i in self.respTimeList:
+                _ += (i - average_resp_time)**2
+            deviation = (_ / (len(self.respTimeList) - 1)) ** 0.5
+            self.delayTimeJudgeStandard = average_resp_time + TIME_STDEV_COEFF * deviation
+        # print('时间延时基准计算完成: %s' % self.delayTimeJudgeStandard)
         return True
 
 
@@ -224,11 +444,6 @@ class SqliScan(ScanBase):
         '''
         报错注入 报错内容检测
         '''
-        # dr = re.compile(r'<[^>]+>',re.S)
-        # dd = dr.sub('', res.text)
-        # print(res.text)
-        # if int(res.headers['content-length']) < 4332:
-        #     print(res.text)
         if res is None:
             return False
         else:
@@ -250,7 +465,7 @@ class SqliScanConsumer(ConsumerBase):
         self.dbsession = dbsession
 
 
-    def on_message(self, unused_channel, basic_deliver, properties, body):
+    def on_message(self, _unused_channel, basic_deliver, properties, body):
         '''
         重写消息处理方法
         '''
@@ -276,9 +491,9 @@ class SqliScanConsumer(ConsumerBase):
 
 
 def SqliScanMain():
-    engine = create_engine('mysql+pymysql://root:123456@127.0.0.1:3306/test',pool_size=20)
+    engine = create_engine(CWebScanSetting.MYSQL_URL, pool_size=20, pool_recycle=599, pool_timeout=30)
     DB_Session = sessionmaker(bind=engine)
-    sqli = SqliScanConsumer('amqp://guest:guest@localhost:5672/%2F', 'sqliscan', 'sqliscan.key', DB_Session)
+    sqli = SqliScanConsumer(CWebScanSetting.AMQP_URL, 'sqliscan', 'sqliscan.key', DB_Session)
     try:
         sqli.run()
     except KeyboardInterrupt:
@@ -306,5 +521,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
-

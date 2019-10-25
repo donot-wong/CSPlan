@@ -32,10 +32,11 @@ class ScanBase(object):
 
     def init(self):
         self.ct = self.SrcRequest.ct
+        self.dataformat = self.SrcRequest.dataformat
         self.urlRaw = self.SrcRequest.url
         self.url = self.SrcRequest.scheme + '://' + self.SrcRequest.netloc + self.SrcRequest.path
         self.cookie = self.SrcRequest.cookie
-        self.ua = self.SrcRequest.reqHeaders['User-Agent']
+        
         self.getData = self.SrcRequest.getData
         self.postData = self.SrcRequest.postData
         self.method = self.SrcRequest.method
@@ -49,7 +50,34 @@ class ScanBase(object):
         else:
             self.ctl = 0
             self.NoLength = True
+
+        if 'User-Agent' in self.SrcRequest.reqHeaders:
+            self.ua = self.SrcRequest.reqHeaders['User-Agent']
+        elif 'user-agent' in self.SrcRequest.reqHeaders:
+            self.ua = self.SrcRequest.reqHeaders['user-agent']
+        else:
+            self.ua = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/74.0.3729.169 Safari/537.36'
+
         self.respTimeList = []
+        self.cookie2Dict()
+
+    def cookie2Dict(self):
+        self.cookieDict = dict()
+        self.cookieDict['other'] = []
+
+        cookieList = self.cookie.split('; ')
+        for i in cookieList:
+            if '=' in i:
+                cookieSplit = i.split('=')
+                if len(cookieSplit) > 2:
+                    cookie_key = cookieSplit[0]
+                    cookie_value = '='.join(cookieSplit[1:])
+                else:
+                    cookie_key = cookieSplit[0]
+                    cookie_value = cookieSplit[1]
+                self.cookieDict[cookie_key] = cookie_value
+            else:
+                self.cookieDict['other'].append(i)
 
     def run(self):
         self.init()
@@ -78,6 +106,7 @@ class ScanBase(object):
         vuln = VulnData(
             dataid = self.saveid,
             scanid = self.scanid,
+            netloc = self.SrcRequest.netloc,
             vulntype = vulntype,
             paramname = paramname,
             status = 0
@@ -158,7 +187,6 @@ class ScanBase(object):
             return True, averageLength
         else:
             return False, averageLength
-        # print(respLengthList)
 
 
     def reqSendForRepeatCheck(self):
@@ -173,24 +201,77 @@ class ScanBase(object):
             resp = s.send(prepped, verify=False, timeout=20, allow_redirects=False)
         except Exception as e:
             return 0, None
-        # print(len(resp.content.decode('utf-8')))
-        # https://www.cnblogs.com/yoyoketang/p/8035428.html
         return resp.elapsed.total_seconds(), resp.headers
 
+    def reqMultiSend(self, loc, data=None, file=None, url=None, method=None, cookie=None, ua=None, ct=None, header=None):
+        pass
 
-    def reqSend(self, loc, data, url, method, cookie, ua, ct, header):
+    def reqSend(self, loc, data=None, url=None, method=None, cookie=None, ua=None, ct=None, header=None):
+        if data is None:
+            getData = self.getData
+            postData = self.postData
+        if url is None:
+            url = self.url
+        if method is None:
+            method = self.method
+        if cookie is None:
+            cookie = self.cookie
+        if ua is None:
+            ua = self.ua
+        if ct is None:
+            ct = self.ct
+        if header is None:
+            header = self.SrcRequestHeaders
         s = Session()
+        if 'cookie' in header and 'Cookie' in header:
+            header['cookie'] = header['Cookie']
+            header.pop('Cookie')
+        if 'referer' in header and 'Referer' in header:
+            header['referer'] = header['Referer']
+            header.pop('Referer')
+        if 'user-agent' in header and 'User-Agent' in header:
+            header['user-agent'] = header['User-Agent']
+            header.pop('User-Agent')
         if loc == 'params' and method == 'GET':
-            req = Request(method, url,
+            req = Request(
+                method, 
+                url,
                 params = data,
                 headers = header,
             )
         elif loc == 'data' and method == 'POST':
-            req = Request(method, url,
+            req = Request(
+                method, 
+                url,
+                params = self.getData,
                 data = data,
                 headers = header
             )
-        else:
+        elif loc == 'params' and method == 'POST':
+            req = Request(
+                method, 
+                url, 
+                params = data,
+                data = self.postData,
+                headers = header
+            )
+        elif loc == 'header':
+            req = Request(
+                self.method,
+                self.url,
+                params = getData,
+                data = postData,
+                headers = header
+            )
+        elif loc == 'empty':
+            req = Request(
+                method,
+                url,
+                params = getData,
+                data = postData,
+                headers = header
+            )
+        else:   
             ScanLogger.warning('Can not handle this request\'s method: %s' % self.method)
             return None
         prepped = s.prepare_request(req)
@@ -203,7 +284,7 @@ class ScanBase(object):
         except Exception as e:
             resp = None
 
-        ScanLogger.warning('ScanBase reqSend function: send requests to: %s' % req.url)
+        ScanLogger.info('ScanBase reqSend function: send requests to: %s' % req.url)
         return resp
 
     def dataTypeCheck(self, data):
@@ -213,6 +294,16 @@ class ScanBase(object):
             pass
         # return JSONLikeData
         # return XMLLikeData
+    def cookieDict2Str(self, cookieDict):
+        cookieStr = ''
+        for key in cookieDict:
+            if key == 'other':
+                cookieStr = cookieStr + '; '.join(cookieDict['other'])
+            else:
+                cookieStr = cookieStr + '; ' + key + '=' + cookieDict[key]
+        if cookieStr.startswith('; '):
+            cookieStr = cookieStr[2:]
+        return cookieStr
 
 
 def main():

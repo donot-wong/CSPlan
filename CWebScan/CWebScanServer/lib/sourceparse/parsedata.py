@@ -31,31 +31,26 @@ class ParseConsumer(ConsumerBase):
         self.TransQUEUE = q
         self.dbsession = dbsession
 
-    def on_message(self, unused_channel, basic_deliver, properties, body):
+    def on_message(self, _unused_channel, basic_deliver, properties, body):
         '''
         重写消息处理方法
         '''
-        scanflag = True
+
         data_parsed = self.parse_message(body)
         if data_parsed is None:
             self.acknowledge_message(basic_deliver.delivery_tag)
         else:
-            if data_parsed.method == 'GET' and data_parsed.query == '':
-                scanflag = False
-            elif data_parsed.method == 'POST' and data_parsed.body == '' and data_parsed.query == '':
-                scanflag = False
-            elif data_parsed.query == '' and data_parsed.body == '':
-                scanflag = False
-            elif data_parsed.statuscode >= 400:
-                scanflag = False
             ScanLogger.warning('ParseConsumer Received message # %s from %s: %s',
                         basic_deliver.delivery_tag, properties.app_id, data_parsed.netloc)
             self.acknowledge_message(basic_deliver.delivery_tag)
-            if scanflag is True:
-                self.TransQUEUE.put(pickle.dumps(data_parsed))
+            self.TransQUEUE.put(pickle.dumps(data_parsed))
 
     def parse_message(self, body):
-        postDataJson = json.loads(pickle.loads(body))
+        try:
+            postDataJson = json.loads(pickle.loads(body))
+        except Exception as e:
+            ScanLogger.warning('Get Data Error' + e)
+        
         try:
             chromeType = postDataJson['bodyType']
         except Exception as e:
@@ -73,23 +68,40 @@ class ParseConsumer(ConsumerBase):
             contentType = ''
 
         # print(reqHeaders)
-        try:
+        if 'Cookie' in reqHeaders:
             cookie = reqHeaders['Cookie']
-        except Exception as e:
+        elif 'cookie' in reqHeaders:
+            cookie = reqHeaders['cookie']
+        else:
             cookie = ''
         # Referer Origin User-Agent Accept-Language Accept-Encoding Accept
         # 原始数据存储
         # ...
-        save2data_raw = data_raw(
-            saveid = postDataJson['InitId'] + postDataJson['requestId'], 
-            url = postDataJson['url'], 
-            method = postDataJson['method'], 
-            body = parse.quote(postDataJson['requestBody']) if chromeType not in ['empty','error'] else '' , 
-            reqheaders = parse.quote(str(reqHeaders)), 
-            resheaders = parse.quote(str(postDataJson['resHeaders']))
-        )
+        # print(postDataJson['requestBody'])
+        # try:
+        #     if chromeType not in ['empty','error']:
+        #         ScanLogger.warning('tmp1' + str(postDataJson['requestBody']) + str(type(postDataJson['requestBody'])))
+        #     tmp1 = parse.quote(str(postDataJson['requestBody'])) if chromeType not in ['empty','error'] else ''
+        #     ScanLogger.warning('tmp2' + str(reqHeaders) + str(type(reqHeaders)))
+        #     tmp2 = parse.quote(str(reqHeaders))
+        #     ScanLogger.warning('tmp3' + str(postDataJson['resHeaders']) + str(type(postDataJson['resHeaders'])))
+        #     tmp3 = parse.quote(str(postDataJson['resHeaders']))
+        # except Exception as e:
+        #     ScanLogger.warning(e)
+        try:
+            save2data_raw = data_raw(
+                saveid = postDataJson['InitId'] + postDataJson['requestId'], 
+                url = postDataJson['url'], 
+                method = postDataJson['method'], 
+                body = parse.quote(str(postDataJson['requestBody'])) if chromeType not in ['empty','error'] else '' , 
+                reqheaders = parse.quote(str(reqHeaders)), 
+                resheaders = parse.quote(str(postDataJson['resHeaders']))
+            )
+        except Exception as e:             
+            ScanLogger.warning(e)
+            return None
 
-        if chromeType == 'formData' or chromeType == 'raw':
+        if chromeType in ['formData', 'raw']:
             parseObj = ParseBaseClass.ParseBase(postDataJson['url'], chromeType, contentType, postDataJson['requestBody'])
             res = parseObj.parse()
             if res:
@@ -100,6 +112,26 @@ class ParseConsumer(ConsumerBase):
         else:
             parseObj = ParseBaseClass.ParseBase(postDataJson['url'], chromeType, contentType, '')
             res = parseObj.parse()
+
+        if res.dataformat == 'UNKNOWN':
+            '''
+            数据格式解析失败，应存储在解析失败数据库
+            '''
+            session = self.dbsession()
+            save2data_raw.parsestatus = 0
+            session.add(save2data_raw)
+            session.commit()
+            session.close()
+            return None
+        elif postDataJson['statusCode'] >= 400:
+            session = self.dbsession()
+            save2data_raw.parsestatus = 2
+            session.add(save2data_raw)
+            session.commit()
+            session.close()
+            return None
+        else:
+            pass
 
         res.cookie = cookie
         res.ct = contentType
@@ -119,32 +151,43 @@ class ParseConsumer(ConsumerBase):
         if chromeType in ['empty','error']:
             res.postData = ''
 
-
-
-
-
         key1raw = res.scheme + res.method + res.netloc + res.path
         key1 = hashlib.md5(key1raw.encode('utf-8')).hexdigest()
 
-        if res.method == 'GET' and res.query != '':
+        if res.dataformat == 'NOBODY':
             keytype = 1
             key2raw = ''
             for key,value in res.getData.items():
                 key2raw = key2raw + key
             key2 = hashlib.md5(key2raw.encode('utf-8')).hexdigest()
-        elif res.method == 'POST'  and res.postData != '':
+        elif res.dataformat == 'FORMDATA':
             keytype = 1
             key2raw = ''
             for key,value in res.postData.items():
                 key2raw = key2raw + key
             key2 = hashlib.md5(key2raw.encode('utf-8')).hexdigest()
-        elif res.method == 'POST' and res.postData == '' and res.query != '':
+        elif res.dataformat == 'MULTIPART':
             keytype = 1
             key2raw = ''
-            for key,value in res.getData.items():
-                key2raw = key2raw + key
+            # print(res.multi_normal_fields)
+            # print(res.multi_file_fields)
+            if len(res.multi_normal_fields) > 0:
+                for key, value in res.multi_normal_fields.items():
+                    key2raw = key2raw + key
+            if len(res.multi_file_fields) > 0:
+                for key, value in res.multi_file_fields.items():
+                    key2raw = key2raw + key
             key2 = hashlib.md5(key2raw.encode('utf-8')).hexdigest()
-        elif res.method == 'GET' and res.query == '':
+        elif res.dataformat == 'JSON':
+            keytype = 1
+            key2raw = ''
+            try:
+                for key,value in json.loads(res.postData).items():
+                    key2raw = key2raw + key
+                key2 = hashlib.md5(key2raw.encode('utf-8')).hexdigest()
+            except Exception as e:
+                key2 = ''
+        elif res.dataformat == 'ALLNO':
             keytype = 2
             key2 = ''
             key1 = self.genUrlKey(res.url)
@@ -185,22 +228,24 @@ class ParseConsumer(ConsumerBase):
 
         # 清洗后数据存储
         # ...
-
-        save2data_clean = data_clean(
-            saveid = res.saveid, 
-            netloc = res.netloc,
-            scheme = res.scheme,
-            method = res.method,
-            path = res.path,
-            query = res.query,
-            body = parse.quote(json.dumps(res.postData)),
-            ct = res.ct,
-            cookie = res.cookie,
-            reqheaders = parse.quote(str(res.reqHeaders)),
-            resheaders = parse.quote(str(res.resHeaders)),
-            statuscode = res.statuscode
-        )
-
+        try:
+            save2data_clean = data_clean(
+                saveid = res.saveid, 
+                netloc = res.netloc,
+                scheme = res.scheme,
+                method = res.method,
+                path = res.path,
+                query = res.query,
+                body = parse.quote(str(json.dumps(res.postData))),
+                ct = res.ct,
+                cookie = res.cookie,
+                reqheaders = parse.quote(str(json.dumps(res.reqHeaders))),
+                resheaders = parse.quote(str(json.dumps(res.resHeaders))),
+                statuscode = res.statuscode
+            )
+        except Exception as e:
+            ScanLogger.warning(e)
+            return None
         ScanLogger.warning('ParseConsumer handle message # %s start...', res.saveid)
 
         try:
@@ -208,6 +253,7 @@ class ParseConsumer(ConsumerBase):
             session.add(save2data_raw)
             session.add(save2data_clean)
             session.flush()
+            save2data_raw.parsestatus = 1
             save2data_clean_key.dataid = save2data_clean.id
             session.add(save2data_clean_key)
             session.commit()
@@ -300,18 +346,18 @@ class ParseConsumer(ConsumerBase):
             return True
 
 def parseMain(q):
-    engine = create_engine('mysql+pymysql://root:123456@127.0.0.1:3306/test', pool_size=20)
+    engine = create_engine(CWebScanSetting.MYSQL_URL, pool_size=20, pool_recycle=599, pool_timeout=30)
     DB_Session = sessionmaker(bind=engine)
-    example = ParseConsumer('amqp://guest:guest@localhost:5672/%2F', 'parsesrcdata', 'parsesrcdata.source', q, DB_Session)
+    parseCS = ParseConsumer(CWebScanSetting.AMQP_URL, 'parsesrcdata', 'parsesrcdata.source', q, DB_Session)
     try:
-        example.run()
+        parseCS.run()
     except KeyboardInterrupt:
-        example.stop()
+        parseCS.stop()
 
 
 def trans2distribute(q):
-    example = PublisherBase('amqp://guest:guest@localhost:5672/%2F?connection_attempts=3&heartbeat_interval=3600', 'distribute', 'distribute.source', q)
-    example.run()
+    publish2distribueObj = PublisherBase(CWebScanSetting.AMQP_URL + "&heartbeat=0", 'distribute', 'distribute.source', q)
+    publish2distribueObj.run()
 
 # if __name__ == '__main__':
 #     parseTest = ParseBase('formData', 'application/x-www-form-urlencoded; charset=UTF-8', "{\"metadata[]\":[\"\"],\"path\":[\"%2FROOT%2FHOME\"]}")

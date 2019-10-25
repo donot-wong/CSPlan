@@ -13,14 +13,19 @@ CONTENT_TYPE = ['application/x-www-form-urlencoded', 'multipart/form-data', 'app
 ScanLogger = logging.getLogger('CWebScanServer')
 
 # 黑名单参数名
-BlackParamName = ['_t', '_csrf', 't', '_p', 'csrf', 'csrftoken', 'nonce', 'timestamp', 'submit','Submit']
+BlackParamName = ['_t', '_csrf', 't', '_p', 'csrf', 'csrftoken', 'nonce', 'timestamp', 'submit', 'Submit', '', 'token', 'sign', "__VIEWSTATE", "__VIEWSTATEENCRYPTED", "__VIEWSTATEGENERATOR", "__EVENTARGUMENT", "__EVENTTARGET", "__EVENTVALIDATION", "ASPSESSIONID", "ASP.NET_SESSIONID", "JSESSIONID", "CFID", "CFTOKEN"]
+IGNORE_PARAMETERS = ("__VIEWSTATE", "__VIEWSTATEENCRYPTED", "__VIEWSTATEGENERATOR", "__EVENTARGUMENT", "__EVENTTARGET", "__EVENTVALIDATION", "ASPSESSIONID", "ASP.NET_SESSIONID", "JSESSIONID", "CFID", "CFTOKEN")
+BLACK_COOKIE_KEY_LIST = ['Domain', 'Path', 'Expires', 'JSESSIONID', 'PHPSESSID', 'sess', 'session', 'csrf', 'secure', '__utma', '__utmz', 'UM_', 'CNZZ', 'token', 'time']
+BLACK_HTTP_HEADER_KEY_LIST = ['accept', 'accept-language', 'accept-encoding', 'cache-control', 'connection', 'cookie', 'referer', 'user-agent', 'pragma', 'upgrade-insecure-requests', 'content-security-policy', 'content-encoding', ':authority', ':method', ':path', ':scheme']
 
 CWebScanSetting = AttribDict()
 CWebScanSetting.log_suffix = 'sqvds.cn'
 CWebScanSetting.dnslog_prefix = 'xxx'
 CWebScanSetting.weblog_prefix = 'xxx'
-CWebScanSetting.dnslog_api = "http://admin.sqvds.cn" + '/api/' + '32d6e7038e8cb3c752364c9e1e69ff33790562b7' +  '/dnslog/' + '{searchstr}'
-CWebScanSetting.weblog_api = "http://admin.sqvds.cn" + '/api/' + '32d6e7038e8cb3c752364c9e1e69ff33790562b7' +  '/weblog/' + '{searchstr}'
+CWebScanSetting.dnslog_api = "https://admin.sqvds.cn" + '/api/' + '32d6e7038e8cb3c752364c9e1e69ff33790562b7' +  '/dnslog/' + '{searchstr}'
+CWebScanSetting.weblog_api = "https://admin.sqvds.cn" + '/api/' + '32d6e7038e8cb3c752364c9e1e69ff33790562b7' +  '/weblog/' + '{searchstr}'
+CWebScanSetting.MYSQL_URL = "mysql+pymysql://root:123456@mysql:3306/donotscan"
+CWebScanSetting.AMQP_URL = "amqp://donotscan:donotpass@rabbitmq:5672/%2F?connection_attempts=3"
 
 # Regular expression for XML POST data
 XML_RECOGNITION_REGEX = r"(?s)\A\s*<[^>]+>(.+>)?\s*\Z"
@@ -40,7 +45,7 @@ CalcAverageTimeLimitCnt = 13 # 计算请求平均时间最小发包量
 TIME_STDEV_COEFF = 7
 
 # Minimum response time that can be even considered as delayed (not a complete requirement)
-MIN_VALID_DELAYED_RESPONSE = 0.5
+MIN_VALID_DELAYED_RESPONSE = 2
 
 
 ScanTaskVulnType = {
