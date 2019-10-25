@@ -14,7 +14,7 @@ def send2slack(msg):
     payload = {"text": msg}
     header = {'Content-Type': 'application/json'}
     try:
-        res = requests.post(SlackHookUrl, data=str(payload), headers=header)
+        res = requests.post(SlackHookUrl, data=str(payload), headers=header, timeout=15)
     except Exception as e:
         return False, e
 

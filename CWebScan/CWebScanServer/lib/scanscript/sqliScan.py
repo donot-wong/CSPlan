@@ -478,9 +478,9 @@ class SqliScanConsumer(ConsumerBase):
         self.scaning = self.scaning + 1
         ScanLogger.warning("SqliScanConsumer commit scantask, taskid: %s, now total scaning task: %s" % (data.scanid, self.scaning))
         sqliscanObjfeaeture.add_done_callback(self.threadcallback)
-        while self.scaning > 35:
-            ScanLogger.warning("SqliScanConsumer ThreadPool more than 30, now: {scaningnum}".format(scaningnum=self.scaning))
-            time.sleep(3)
+        while self.scaning > 45:
+            ScanLogger.warning("SqliScanConsumer ThreadPool more than 45, now: {scaningnum}".format(scaningnum=self.scaning))
+            time.sleep(5)
 
     def threadcallback(self, obj):
         print(obj.result())

@@ -198,7 +198,7 @@ class ScanBase(object):
         )
         prepped = s.prepare_request(req)
         try:
-            resp = s.send(prepped, verify=False, timeout=20, allow_redirects=False)
+            resp = s.send(prepped, verify=False, timeout=8, allow_redirects=False)
         except Exception as e:
             return 0, None
         return resp.elapsed.total_seconds(), resp.headers
@@ -278,7 +278,7 @@ class ScanBase(object):
         try:
             resp = s.send(prepped,
                 verify=False,
-                timeout=15,
+                timeout=8,
                 allow_redirects=False
             )
         except Exception as e:
