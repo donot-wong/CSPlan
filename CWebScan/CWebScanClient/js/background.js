@@ -1,5 +1,20 @@
 var CmonitorServer = "http://106.12.43.245:4579/";
 // var CmonitorServer = "https:www.baidu.com";
+var status = false;
+
+chrome.contextMenus.create({
+    title: "Start CWebScanClient",
+    id: "CWebScanClient",
+    onclick: function(){
+        if (status == 'true') {
+            chrome.contextMenus.update('CWebScanClient', {title: 'Start CWebScanClient'} , function(){});
+            status = false;
+        }else{
+            chrome.contextMenus.update('CWebScanClient', {title: 'Stop CWebScanClient'} , function(){});
+            status = true;
+        }
+    }
+});
 
 // 启动时创建随机数
 function RndNum(n){
@@ -75,6 +90,9 @@ function getReqAndsendRespHeader2Server(InitId, requestId, resIp, statusCode, re
 	// console.log(reqData);
 	// console.log(reqData["requestBody"]);
 	// console.log(JSON.stringify(reqData));
+	if (status == 'false') {
+		return;
+	}
 	if (reqData['url'].indexOf('106.12.43.245') == -1 && reqData['url'].indexOf('twitter.com') == -1 && reqData['url'].indexOf('donot.me') == -1) {
 		$.ajax({
 			type: "POST",

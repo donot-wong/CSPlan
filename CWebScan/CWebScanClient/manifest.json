@@ -1,7 +1,7 @@
 {
 	"name": "CWebScanClient",
 	"description": "CWebScanClient by donot!",
-	"version": "1.0",
+	"version": "1.1",
 
 	"permissions": [
 		"gcm",
@@ -19,5 +19,13 @@
       		"js/jquery-3.3.1.min.js"
       	]
    	},
+
+   	"icons": 
+	{
+	    "16": "imgs/icon16.png",             
+	    "48": "imgs/icon48.png",            
+	    "128": "imgs/icon128.png" 
+	},
+
 	"manifest_version": 2
 }
