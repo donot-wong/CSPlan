@@ -417,7 +417,7 @@ class SqliScan(ScanBase):
         计算时间盲注时间判断基准
         '''
         cnt = 0
-        while len(self.respTimeList) < CalcAverageTimeLimitCnt:
+        while len(self.respTimeList) < CALC_AVERAGE_TIME_LIMIT_CNT:
             ela, headers = self.reqSendForRepeatCheck()
             cnt += 1
             if ela != 0 and headers is not None:
@@ -437,6 +437,7 @@ class SqliScan(ScanBase):
             deviation = (_ / (len(self.respTimeList) - 1)) ** 0.5
             self.delayTimeJudgeStandard = average_resp_time + TIME_STDEV_COEFF * deviation
         # print('时间延时基准计算完成: %s' % self.delayTimeJudgeStandard)
+        ScanLogger.info('时间延时基准计算完成: %s' % self.delayTimeJudgeStandard)
         return True
 
 
@@ -451,7 +452,7 @@ class SqliScan(ScanBase):
             dd = dr.sub('', res.text)
         for i in plainArray:
             if i in dd:
-                ScanLogger.warning('SqliScanBase checkIsErrorBaseSqli function: find sqli base condition %s' % i)
+                ScanLogger.info('SqliScanBase checkIsErrorBaseSqli function: find sqli base condition %s' % i)
                 return True
         return False
 

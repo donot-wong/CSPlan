@@ -16,7 +16,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath
 from lib.rabbitqueue.consumerBase import ConsumerBase
 from lib.rabbitqueue.producerMultiBase import PublisherMultiBase
 from utils.DataStructure import RequestData
-from utils.globalParam import ScanLogger, CWebScanSetting, ScanTaskVulnType, ScanTaskStatus
+from utils.globalParam import ScanLogger, CWebScanSetting, ScanTaskVulnType, ScanTaskStatus, DOMAIN_BLACK_LIST
 from lib.models.datamodel import ScanTask, HostScan
 
 
@@ -54,6 +54,17 @@ class DistributeConsumer(ConsumerBase):
                 pass
         else:
             pass
+
+        '''
+        域名黑名单检测
+        '''
+        for black_domain in DOMAIN_BLACK_LIST:
+            if black_domain in data.netloc:
+                self.acknowledge_message(basic_deliver.delivery_tag)
+                return
+            else:
+                continue
+
 
         scanList = []
         isHostScaned = self.hostScanCheck(data.netloc)
@@ -228,7 +239,7 @@ class DistributeConsumer(ConsumerBase):
         if ration < 0.2:
             return True, averageLength
         else:
-            ScanLogger.warning('ration < 0.2: ' + data.url)
+            ScanLogger.warning('ration > 0.2: ' + data.url)
             return False, averageLength
 
     def reqSendForRepeatCheck(self, method, url, data, headers):
